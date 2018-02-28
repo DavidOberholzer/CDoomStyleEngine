@@ -281,7 +281,7 @@ static void RenderLine(float x, float y1, float y2, int R, int G, int B)
     SDL_RenderDrawPoint(renderer, x, y2);
 }
 
-static int DrawLine(float x1, float x2, float yt1, float yt2, float yb1, float yb2, int R, int G, int B, int rorf)
+static int DrawLine(float x1, float x2, float yt1, float yt2, float yb1, float yb2, int R, int G, int B, float light, int rorf)
 {
     int drawn = 0;
     float cx1 = x1, cx2 = x2;
@@ -318,7 +318,7 @@ static int DrawLine(float x1, float x2, float yt1, float yt2, float yb1, float y
                     }
                     else
                     {
-                        RenderLine(j, cyt, cyb, R, G, B);
+                        RenderLine(j, cyt, cyb, (int)R * light, (int)G * light, (int)B * light);
                     }
 
                     if (!drawn)
@@ -357,7 +357,7 @@ static int DrawLine(float x1, float x2, float yt1, float yt2, float yb1, float y
                         }
                         else
                         {
-                            RenderLine(j, cyt, cyb, R, G, B);
+                            RenderLine(j, cyt, cyb, (int)R * light, (int)G * light, (int)B * light);
                         }
                         if (!drawn)
                         {
@@ -391,7 +391,7 @@ static int DrawLine(float x1, float x2, float yt1, float yt2, float yb1, float y
                         }
                         else
                         {
-                            RenderLine(j, cyt, cyb, R, G, B);
+                            RenderLine(j, cyt, cyb, (int)R * light, (int)G * light, (int)B * light);
                         }
                         if (!drawn)
                         {
@@ -427,7 +427,7 @@ static int DrawLine(float x1, float x2, float yt1, float yt2, float yb1, float y
                         }
                         else
                         {
-                            RenderLine(j, cyt, cyb, R, G, B);
+                            RenderLine(j, cyt, cyb, (int)R * light, (int)G * light, (int)B * light);
                         }
                         if (!drawn)
                         {
@@ -504,17 +504,17 @@ static void RenderWalls()
                                     // Create a floor wall for the change in height.
                                     stepy1 = (ph - sectors[sctr->lineDef[i].adjacent - 1].floorheight) / *ptr + HEIGHT / 2;
                                     stepy2 = (ph - sectors[sctr->lineDef[i].adjacent - 1].floorheight) / *(ptr + 2) + HEIGHT / 2;
-                                    DrawLine(s1, s2, stepy1, stepy2, zb1, zb2, 0x37, 0xcd, 0xc1, 0);
+                                    DrawLine(s1, s2, stepy1, stepy2, zb1, zb2, 0x37, 0xcd, 0xc1, sctr->lightlevel, 0);
                                 }
                                 if ((sectors[sctr->lineDef[i].adjacent - 1].ceilingheight - sctr->ceilingheight) < 0)
                                 {
                                     // Create a ceiling for the change in height.
                                     ceily1 = -(sectors[sctr->lineDef[i].adjacent - 1].ceilingheight - ph) / *ptr + HEIGHT / 2;
                                     ceily2 = -(sectors[sctr->lineDef[i].adjacent - 1].ceilingheight - ph) / *(ptr + 2) + HEIGHT / 2;
-                                    DrawLine(s1, s2, zt1, zt2, ceily1, ceily2, 0xa7, 0x37, 0xcd, 0);
+                                    DrawLine(s1, s2, zt1, zt2, ceily1, ceily2, 0xa7, 0x37, 0xcd, sctr->lightlevel, 0);
                                 }
                                 // Draw the center portal for now
-                                drawn = DrawLine(s1, s2, ceily1, ceily2, stepy1, stepy2, 0xDD, 0x00, 0x00, 0);
+                                drawn = DrawLine(s1, s2, ceily1, ceily2, stepy1, stepy2, 0xDD, 0x00, 0x00, sctr->lightlevel, 0);
                                 // Save to list of portals to render if drawn.
                                 if (drawn)
                                 {
@@ -525,13 +525,13 @@ static void RenderWalls()
                             else
                             {
                                 // Draw a normal wall.
-                                drawn = DrawLine(s1, s2, zt1, zt2, zb1, zb2, 0xcc, 0xc5, 0xce, 0);
+                                drawn = DrawLine(s1, s2, zt1, zt2, zb1, zb2, 0xcc, 0xc5, 0xce, sctr->lightlevel, 0);
                             }
                             // Draw roofs and floors.
                             if (drawn)
                             {
-                                DrawLine(s1, s2, 0, 0, zt1, zt2, 0x79, 0x91, 0xa9, 1);
-                                DrawLine(s1, s2, zb1, zb2, HEIGHT, HEIGHT, 0x9a, 0x79, 0xa9, 1);
+                                DrawLine(s1, s2, 0, 0, zt1, zt2, 0x79, 0x91, 0xa9, sctr->lightlevel, 1);
+                                DrawLine(s1, s2, zb1, zb2, HEIGHT, HEIGHT, 0x9a, 0x79, 0xa9, sctr->lightlevel, 1);
                             }
                         }
                     }
