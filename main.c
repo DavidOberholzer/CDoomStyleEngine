@@ -9,8 +9,8 @@
 #define HEIGHT 480
 #define PI 3.141592653589793238
 #define VIEWANGLE 5 * PI / 12
-#define PLAYERHEIGHT 200
-#define MOVESPEED 0.1
+#define PLAYERHEIGHT 20
+#define MOVESPEED 0.05
 
 // SDL Window and Surface.
 
@@ -158,12 +158,12 @@ float Clamp(float num, float limit)
 
 int RangesOverlap(float a0, float a1, float b0, float b1)
 {
-    return (Max(a0, a1) > Min(b0, b1) && Min(a0, a1) < Max(b0, b1)) ? 1 : 0;
+    return (Max(a0, a1) >= Min(b0, b1) && Min(a0, a1) <= Max(b0, b1)) ? 1 : 0;
 }
 
 int BoxesOverlap(float x1, float y1, float x2, float y2, float x3, float y3, float x4, float y4)
 {
-    return (RangesOverlap(x1, x2, x3, x4) > 1 && RangesOverlap(y1, y2, y3, y4)) ? 1 : 0;
+    return (RangesOverlap(x1, x2, x3, x4) && RangesOverlap(y1, y2, y3, y4));
 }
 
 float *VectorProjection(float x1, float y1, float x2, float y2)
@@ -276,12 +276,15 @@ static void RenderLine(float x, float y1, float y2, int R, int G, int B)
 {
     SDL_SetRenderDrawColor(renderer, R, G, B, 0x00);
     SDL_RenderDrawLine(renderer, (int)x, (int)y1, (int)x, (int)y2);
+    SDL_SetRenderDrawColor(renderer, 0x01, 0x01, 0x01, 0x00);
+    SDL_RenderDrawPoint(renderer, x, y1);
+    SDL_RenderDrawPoint(renderer, x, y2);
 }
 
-static int DrawLine(float x1, float x2, float yt1, float yt2, float yb1, float yb2, int R, int G, int B)
+static int DrawLine(float x1, float x2, float yt1, float yt2, float yb1, float yb2, int R, int G, int B, int rorf)
 {
     int drawn = 0;
-    float cx1 = 0.0, cx2 = 0.0;
+    float cx1 = x1, cx2 = x2;
     for (int x = 0; x < numPortals; x++)
     {
         if (portals[x].rendered == 1)
@@ -309,7 +312,15 @@ static int DrawLine(float x1, float x2, float yt1, float yt2, float yb1, float y
                 }
                 if (cyt < cyb)
                 {
-                    RenderLine(j, cyt, cyb, R, G, B);
+                    if ((j == cx1 || j + 1 > cx2) && !rorf)
+                    {
+                        RenderLine(j, cyt, cyb, 0x01, 0x01, 0x01);
+                    }
+                    else
+                    {
+                        RenderLine(j, cyt, cyb, R, G, B);
+                    }
+
                     if (!drawn)
                     {
                         drawn = 1;
@@ -323,8 +334,8 @@ static int DrawLine(float x1, float x2, float yt1, float yt2, float yb1, float y
             float bt, bb;
             if (yt1 == yt2)
             {
-                mb = (yb2 - yb1) / (cx2 - cx1);
-                bb = yb2 - mb * cx2;
+                mb = (yb2 - yb1) / (x2 - x1);
+                bb = yb2 - mb * x2;
                 for (int j = cx1; j <= cx2; j++)
                 {
                     float cyt = 0.0, cyb = 0.0;
@@ -340,7 +351,14 @@ static int DrawLine(float x1, float x2, float yt1, float yt2, float yb1, float y
                     }
                     if (cyt < cyb)
                     {
-                        RenderLine(j, cyt, cyb, R, G, B);
+                        if ((j == cx1 || j + 1 > cx2) && !rorf)
+                        {
+                            RenderLine(j, cyt, cyb, 0x01, 0x01, 0x01);
+                        }
+                        else
+                        {
+                            RenderLine(j, cyt, cyb, R, G, B);
+                        }
                         if (!drawn)
                         {
                             drawn = 1;
@@ -350,8 +368,8 @@ static int DrawLine(float x1, float x2, float yt1, float yt2, float yb1, float y
             }
             else if (yb1 == yb2)
             {
-                mt = (yt2 - yt1) / (cx2 - cx1);
-                bt = yt2 - mt * cx2;
+                mt = (yt2 - yt1) / (x2 - x1);
+                bt = yt2 - mt * x2;
                 for (int j = cx1; j <= cx2; j++)
                 {
                     float cyt = 0.0, cyb = 0.0;
@@ -367,7 +385,14 @@ static int DrawLine(float x1, float x2, float yt1, float yt2, float yb1, float y
                     }
                     if (cyt < cyb)
                     {
-                        RenderLine(j, cyt, cyb, R, G, B);
+                        if ((j == cx1 || j + 1 > cx2) && !rorf)
+                        {
+                            RenderLine(j, cyt, cyb, 0x01, 0x01, 0x01);
+                        }
+                        else
+                        {
+                            RenderLine(j, cyt, cyb, R, G, B);
+                        }
                         if (!drawn)
                         {
                             drawn = 1;
@@ -377,10 +402,10 @@ static int DrawLine(float x1, float x2, float yt1, float yt2, float yb1, float y
             }
             else
             {
-                mt = (yt2 - yt1) / (cx2 - cx1);
-                mb = (yb2 - yb1) / (cx2 - cx1);
-                bt = yt2 - mt * cx2;
-                bb = yb2 - mb * cx2;
+                mt = (yt2 - yt1) / (x2 - x1);
+                mb = (yb2 - yb1) / (x2 - x1);
+                bt = yt2 - mt * x2;
+                bb = yb2 - mb * x2;
                 for (int j = cx1; j <= cx2; j++)
                 {
                     float cyt = 0.0, cyb = 0.0;
@@ -396,7 +421,14 @@ static int DrawLine(float x1, float x2, float yt1, float yt2, float yb1, float y
                     }
                     if (cyt < cyb)
                     {
-                        RenderLine(j, cyt, cyb, R, G, B);
+                        if ((j == cx1 || j + 1 > cx2) && !rorf)
+                        {
+                            RenderLine(j, cyt, cyb, 0x01, 0x01, 0x01);
+                        }
+                        else
+                        {
+                            RenderLine(j, cyt, cyb, R, G, B);
+                        }
                         if (!drawn)
                         {
                             drawn = 1;
@@ -451,7 +483,7 @@ static void RenderWalls()
 
                     if (*ptr > 0 && *(ptr + 2) > 0)
                     {
-                        float s1, s2, ph, zt1, zb1, zt2, zb2;
+                        float s1, s2, zt1, zb1, zt2, zb2;
                         // Wall X transformation
                         s1 = (500 * *(ptr + 1) / *ptr) + WIDTH / 2;
                         s2 = (500 * *(ptr + 3) / *(ptr + 2)) + WIDTH / 2;
@@ -472,17 +504,17 @@ static void RenderWalls()
                                     // Create a floor wall for the change in height.
                                     stepy1 = (ph - sectors[sctr->lineDef[i].adjacent - 1].floorheight) / *ptr + HEIGHT / 2;
                                     stepy2 = (ph - sectors[sctr->lineDef[i].adjacent - 1].floorheight) / *(ptr + 2) + HEIGHT / 2;
-                                    DrawLine(s1, s2, stepy1, stepy2, zb1, zb2, 0x37, 0xcd, 0xc1);
+                                    DrawLine(s1, s2, stepy1, stepy2, zb1, zb2, 0x37, 0xcd, 0xc1, 0);
                                 }
                                 if ((sectors[sctr->lineDef[i].adjacent - 1].ceilingheight - sctr->ceilingheight) < 0)
                                 {
                                     // Create a ceiling for the change in height.
                                     ceily1 = -(sectors[sctr->lineDef[i].adjacent - 1].ceilingheight - ph) / *ptr + HEIGHT / 2;
                                     ceily2 = -(sectors[sctr->lineDef[i].adjacent - 1].ceilingheight - ph) / *(ptr + 2) + HEIGHT / 2;
-                                    DrawLine(s1, s2, zt1, zt2, ceily1, ceily2, 0xa7, 0x37, 0xcd);
+                                    DrawLine(s1, s2, zt1, zt2, ceily1, ceily2, 0xa7, 0x37, 0xcd, 0);
                                 }
                                 // Draw the center portal for now
-                                drawn = DrawLine(s1, s2, ceily1, ceily2, stepy1, stepy2, 0xDD, 0x00, 0x00);
+                                drawn = DrawLine(s1, s2, ceily1, ceily2, stepy1, stepy2, 0xDD, 0x00, 0x00, 0);
                                 // Save to list of portals to render if drawn.
                                 if (drawn)
                                 {
@@ -493,13 +525,13 @@ static void RenderWalls()
                             else
                             {
                                 // Draw a normal wall.
-                                drawn = DrawLine(s1, s2, zt1, zt2, zb1, zb2, 0xcc, 0xc5, 0xce);
+                                drawn = DrawLine(s1, s2, zt1, zt2, zb1, zb2, 0xcc, 0xc5, 0xce, 0);
                             }
                             // Draw roofs and floors.
                             if (drawn)
                             {
-                                DrawLine(s1, s2, 0, 0, zt1, zt2, 0x79, 0x91, 0xa9);
-                                DrawLine(s1, s2, zb1, zb2, HEIGHT, HEIGHT, 0x9a, 0x79, 0xa9);
+                                DrawLine(s1, s2, 0, 0, zt1, zt2, 0x79, 0x91, 0xa9, 1);
+                                DrawLine(s1, s2, zb1, zb2, HEIGHT, HEIGHT, 0x9a, 0x79, 0xa9, 1);
                             }
                         }
                     }
@@ -514,9 +546,60 @@ static void RenderWalls()
     numPortals = 0;
 }
 
+static void MovePlayer()
+{
+    int sec = player.sector - 1;
+    for (int i = 0; i < sectors[sec].lineNum; i++)
+    {
+        float crossing = SideOfLine(player.position.x + player.velocity.x, player.position.y + player.velocity.y, sectors[sec].lineDef[i].x1, sectors[sec].lineDef[i].y1, sectors[sec].lineDef[i].x2, sectors[sec].lineDef[i].y2);
+        int overlap = BoxesOverlap(player.position.x, player.position.y, player.position.x + player.velocity.x, player.position.y + player.velocity.y, sectors[sec].lineDef[i].x1, sectors[sec].lineDef[i].y1, sectors[sec].lineDef[i].x2, sectors[sec].lineDef[i].y2);
+        if (sectors[sec].lineDef[i].adjacent > -1 && crossing < 0 && overlap)
+        {
+            player.sector = sectors[sec].lineDef[i].adjacent;
+        }
+    }
+
+    player.position.x += player.velocity.x;
+    player.position.y += player.velocity.y;
+    player.velocity.x = 0;
+    player.velocity.y = 0;
+}
+
+static void HandleCollision()
+{
+    for (int i = 0; i < numSectors; i++)
+    {
+        for (int j = 0; j < sectors[i].lineNum; j++)
+        {
+            int canStep = 0;
+            if (sectors[i].lineDef[j].adjacent > -1)
+            {
+                if ((sectors[sectors[i].lineDef[j].adjacent - 1].floorheight - sectors[player.sector - 1].floorheight) <= 30)
+                {
+                    canStep = 1;
+                }
+            }
+            if (!canStep)
+            {
+                float crossing = SideOfLine(player.position.x + player.velocity.x, player.position.y + player.velocity.y, sectors[i].lineDef[j].x1, sectors[i].lineDef[j].y1, sectors[i].lineDef[j].x2, sectors[i].lineDef[j].y2);
+                int overlap = BoxesOverlap(player.position.x, player.position.y, player.position.x + player.velocity.x, player.position.y + player.velocity.y, sectors[i].lineDef[j].x1, sectors[i].lineDef[j].y1, sectors[i].lineDef[j].x2, sectors[i].lineDef[j].y2);
+                // Check if the player is going to move behind the given wall and within range of the wall.
+                if (crossing < 0 && overlap)
+                {
+                    // Project the movement vector along the collided wall.
+                    float *dir = VectorProjection(player.velocity.x, player.velocity.y, sectors[i].lineDef[j].x2 - sectors[i].lineDef[j].x1, sectors[i].lineDef[j].y2 - sectors[i].lineDef[j].y1);
+                    player.velocity.x = *dir;
+                    player.velocity.y = *(dir + 1);
+                }
+            }
+        }
+    }
+    MovePlayer();
+}
+
 int main()
 {
-    int keysPressed[4], close = 0;
+    int keysPressed[6], close = 0;
     LoadMapFile();
     SDL_Init(SDL_INIT_EVERYTHING);
     window = SDL_CreateWindow("2.5d Engine David", 0, 0, WIDTH, HEIGHT, SDL_WINDOW_FULLSCREEN);
@@ -525,7 +608,7 @@ int main()
     // Get Texture from surface
     texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, WIDTH, HEIGHT);
     SDL_ShowCursor(SDL_DISABLE);
-    while (close == 0)
+    while (!close)
     {
         SDL_SetRenderTarget(renderer, texture);
         SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0x00, 0x00);
@@ -535,29 +618,39 @@ int main()
         SDL_RenderCopy(renderer, texture, NULL, NULL);
         SDL_RenderPresent(renderer);
         SDL_Event event;
-        if (SDL_PollEvent(&event))
+        while (SDL_PollEvent(&event))
         {
-            if (event.type == SDL_QUIT)
+            switch (event.type)
             {
-                close = 1;
-            }
-            switch (event.key.keysym.sym)
-            {
-            case SDLK_w:
-                keysPressed[0] = event.type == SDL_KEYDOWN ? 1 : 0;
-                break;
-            case SDLK_s:
-                keysPressed[1] = event.type == SDL_KEYDOWN ? 1 : 0;
-                break;
-            case SDLK_a:
-                keysPressed[2] = event.type == SDL_KEYDOWN ? 1 : 0;
-                break;
-            case SDLK_d:
-                keysPressed[3] = event.type == SDL_KEYDOWN ? 1 : 0;
-                break;
-            case SDLK_q:
+            case SDL_QUIT:
                 close = 1;
                 break;
+            case SDL_KEYUP:
+            case SDL_KEYDOWN:
+                switch (event.key.keysym.sym)
+                {
+                case SDLK_w:
+                    keysPressed[0] = event.type == SDL_KEYDOWN ? 1 : 0;
+                    break;
+                case SDLK_s:
+                    keysPressed[1] = event.type == SDL_KEYDOWN ? 1 : 0;
+                    break;
+                case SDLK_a:
+                    keysPressed[2] = event.type == SDL_KEYDOWN ? 1 : 0;
+                    break;
+                case SDLK_d:
+                    keysPressed[3] = event.type == SDL_KEYDOWN ? 1 : 0;
+                    break;
+                case SDLK_q:
+                    keysPressed[4] = event.type == SDL_KEYDOWN ? 1 : 0;
+                    break;
+                case SDLK_e:
+                    keysPressed[5] = event.type == SDL_KEYDOWN ? 1 : 0;
+                    break;
+                case SDLK_ESCAPE:
+                    close = 1;
+                    break;
+                }
             }
         }
         player.velocity.x += keysPressed[0] ? MOVESPEED * cos(player.angle) : 0;
@@ -569,10 +662,13 @@ int main()
         player.velocity.x -= keysPressed[3] ? MOVESPEED * sin(player.angle) : 0;
         player.velocity.y += keysPressed[3] ? MOVESPEED * cos(player.angle) : 0;
 
-        int x, y;
-        SDL_GetRelativeMouseState(&x, &y);
-        player.angle = x * 0.003f;
-        printf("%f\n", player.angle);
+        if (player.velocity.x || player.velocity.y)
+        {
+            HandleCollision();
+        }
+
+        player.angle -= keysPressed[4] ? 0.03f : 0;
+        player.angle += keysPressed[5] ? 0.03f : 0;
 
         SDL_Delay(10);
     }
