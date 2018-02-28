@@ -516,8 +516,6 @@ static void RenderWalls()
 
 int main()
 {
-    time_t start_t, end_t;
-    double diff_t;
     int keysPressed[4], close = 0;
     LoadMapFile();
     SDL_Init(SDL_INIT_EVERYTHING);
@@ -529,7 +527,6 @@ int main()
     SDL_ShowCursor(SDL_DISABLE);
     while (close == 0)
     {
-        time(&start_t);
         SDL_SetRenderTarget(renderer, texture);
         SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0x00, 0x00);
         SDL_RenderClear(renderer);
@@ -540,10 +537,10 @@ int main()
         SDL_Event event;
         if (SDL_PollEvent(&event))
         {
-            // if (event.type == SDL_QUIT)
-            // {
-            //     close = 1;
-            // }
+            if (event.type == SDL_QUIT)
+            {
+                close = 1;
+            }
             switch (event.key.keysym.sym)
             {
             case SDLK_w:
@@ -573,14 +570,11 @@ int main()
         player.velocity.y += keysPressed[3] ? MOVESPEED * cos(player.angle) : 0;
 
         int x, y;
-        SDL_GetMouseState(&x, &y);
+        SDL_GetRelativeMouseState(&x, &y);
         player.angle = x * 0.003f;
+        printf("%f\n", player.angle);
 
-        time(&end_t);
-        if (difftime(end_t, start_t) < 0.1)
-        {
-            sleep(0.1 - difftime(end_t, start_t));
-        }
+        SDL_Delay(10);
     }
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
