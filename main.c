@@ -57,7 +57,7 @@ static struct player
 
 static void LoadMapFile()
 {
-    FILE *data = fopen("maps/testmap1.txt", "rt");
+    FILE *data = fopen("maps/theoverlook.txt", "rt");
     if (!data)
     {
         perror("Map did not load!");
@@ -143,12 +143,12 @@ float SideOfLine(float px, float py, float x1, float y1, float x2, float y2)
 
 int Max(float x, float y)
 {
-    return x > y ? x : y;
+    return x >= y ? x : y;
 }
 
 int Min(float x, float y)
 {
-    return x < y ? x : y;
+    return x <= y ? x : y;
 }
 
 float Clamp(float num, float limit)
@@ -281,22 +281,50 @@ static void RenderLine(float x, float y1, float y2, int R, int G, int B)
     SDL_RenderDrawPoint(renderer, x, y2);
 }
 
-static int DrawLine(float x1, float x2, float yt1, float yt2, float yb1, float yb2, int R, int G, int B, float light, int rorf)
+static int DrawLine(float x1, float x2, float cx1, float cx2, float yt1, float yt2, float yb1, float yb2, int R, int G, int B, float light, int rorf)
 {
     int drawn = 0;
-    float cx1 = x1, cx2 = x2;
-    for (int x = 0; x < numPortals; x++)
+    if ((yt1 == yt2) && (yb1 == yb2))
     {
-        if (portals[x].rendered == 1)
+        for (int j = cx1; j <= cx2; j++)
         {
-            cx1 = Max(x1, portals[x].x1);
-            cx2 = Min(x2, portals[x].x2);
+            float cyt = 0.0, cyb = 0.0;
+            for (int x = 0; x < numPortals; x++)
+            {
+                if (portals[x].rendered == 1)
+                {
+                    float *p = IntersectionPoint(j, yt1, j, yb1, portals[x].x1, portals[x].yt1, portals[x].x2, portals[x].yt2);
+                    cyt = Max(*(p + 1), yt1);
+                    p = IntersectionPoint(j, yt1, j, yb1, portals[x].x1, portals[x].yb1, portals[x].x2, portals[x].yb2);
+                    cyb = Min(*(p + 1), yb1);
+                }
+            }
+            if (cyt < cyb)
+            {
+                if ((j == cx1 || j + 1 > cx2) && !rorf)
+                {
+                    RenderLine(j, cyt, cyb, 0x01, 0x01, 0x01);
+                }
+                else
+                {
+                    RenderLine(j, cyt, cyb, (int)R * light, (int)G * light, (int)B * light);
+                }
+
+                if (!drawn)
+                {
+                    drawn = 1;
+                }
+            }
         }
     }
-    if (cx1 < cx2)
+    else
     {
-        if ((yt1 == yt2) && (yb1 == yb2))
+        float mt, mb;
+        float bt, bb;
+        if (yt1 == yt2)
         {
+            mb = (yb2 - yb1) / (x2 - x1);
+            bb = yb2 - mb * x2;
             for (int j = cx1; j <= cx2; j++)
             {
                 float cyt = 0.0, cyb = 0.0;
@@ -304,9 +332,43 @@ static int DrawLine(float x1, float x2, float yt1, float yt2, float yb1, float y
                 {
                     if (portals[x].rendered == 1)
                     {
-                        float *p = IntersectionPoint(j, yt1, j, yb1, portals[x].x1, portals[x].yt1, portals[x].x2, portals[x].yt2);
+                        float *p = IntersectionPoint(j, yt1, j, mb * j + bb, portals[x].x1, portals[x].yt1, portals[x].x2, portals[x].yt2);
                         cyt = Max(*(p + 1), yt1);
-                        p = IntersectionPoint(j, yt1, j, yb1, portals[x].x1, portals[x].yb1, portals[x].x2, portals[x].yb2);
+                        p = IntersectionPoint(j, yt1, j, mb * j + bb, portals[x].x1, portals[x].yb1, portals[x].x2, portals[x].yb2);
+                        cyb = Min(*(p + 1), mb * j + bb);
+                    }
+                }
+                if (cyt < cyb)
+                {
+                    if ((j == cx1 || j + 1 > cx2) && !rorf)
+                    {
+                        RenderLine(j, cyt, cyb, 0x01, 0x01, 0x01);
+                    }
+                    else
+                    {
+                        RenderLine(j, cyt, cyb, (int)R * light, (int)G * light, (int)B * light);
+                    }
+                    if (!drawn)
+                    {
+                        drawn = 1;
+                    }
+                }
+            }
+        }
+        else if (yb1 == yb2)
+        {
+            mt = (yt2 - yt1) / (x2 - x1);
+            bt = yt2 - mt * x2;
+            for (int j = cx1; j <= cx2; j++)
+            {
+                float cyt = 0.0, cyb = 0.0;
+                for (int x = 0; x < numPortals; x++)
+                {
+                    if (portals[x].rendered == 1)
+                    {
+                        float *p = IntersectionPoint(j, mt * j + bt, j, yb1, portals[x].x1, portals[x].yt1, portals[x].x2, portals[x].yt2);
+                        cyt = Max(*(p + 1), mt * j + bt);
+                        p = IntersectionPoint(j, mt * j + bt, j, yb1, portals[x].x1, portals[x].yb1, portals[x].x2, portals[x].yb2);
                         cyb = Min(*(p + 1), yb1);
                     }
                 }
@@ -320,7 +382,6 @@ static int DrawLine(float x1, float x2, float yt1, float yt2, float yb1, float y
                     {
                         RenderLine(j, cyt, cyb, (int)R * light, (int)G * light, (int)B * light);
                     }
-
                     if (!drawn)
                     {
                         drawn = 1;
@@ -330,109 +391,36 @@ static int DrawLine(float x1, float x2, float yt1, float yt2, float yb1, float y
         }
         else
         {
-            float mt, mb;
-            float bt, bb;
-            if (yt1 == yt2)
+            mt = (yt2 - yt1) / (x2 - x1);
+            mb = (yb2 - yb1) / (x2 - x1);
+            bt = yt2 - mt * x2;
+            bb = yb2 - mb * x2;
+            for (int j = cx1; j <= cx2; j++)
             {
-                mb = (yb2 - yb1) / (x2 - x1);
-                bb = yb2 - mb * x2;
-                for (int j = cx1; j <= cx2; j++)
+                float cyt = 0.0, cyb = 0.0;
+                for (int x = 0; x < numPortals; x++)
                 {
-                    float cyt = 0.0, cyb = 0.0;
-                    for (int x = 0; x < numPortals; x++)
+                    if (portals[x].rendered == 1)
                     {
-                        if (portals[x].rendered == 1)
-                        {
-                            float *p = IntersectionPoint(j, yt1, j, mb * j + bb, portals[x].x1, portals[x].yt1, portals[x].x2, portals[x].yt2);
-                            cyt = Max(*(p + 1), yt1);
-                            p = IntersectionPoint(j, yt1, j, mb * j + bb, portals[x].x1, portals[x].yb1, portals[x].x2, portals[x].yb2);
-                            cyb = Min(*(p + 1), mb * j + bb);
-                        }
-                    }
-                    if (cyt < cyb)
-                    {
-                        if ((j == cx1 || j + 1 > cx2) && !rorf)
-                        {
-                            RenderLine(j, cyt, cyb, 0x01, 0x01, 0x01);
-                        }
-                        else
-                        {
-                            RenderLine(j, cyt, cyb, (int)R * light, (int)G * light, (int)B * light);
-                        }
-                        if (!drawn)
-                        {
-                            drawn = 1;
-                        }
+                        float *p = IntersectionPoint(j, mt * j + bt, j, mb * j + bb, portals[x].x1, portals[x].yt1, portals[x].x2, portals[x].yt2);
+                        cyt = Max(*(p + 1), mt * j + bt);
+                        p = IntersectionPoint(j, mt * j + bt, j, mb * j + bb, portals[x].x1, portals[x].yb1, portals[x].x2, portals[x].yb2);
+                        cyb = Min(*(p + 1), mb * j + bb);
                     }
                 }
-            }
-            else if (yb1 == yb2)
-            {
-                mt = (yt2 - yt1) / (x2 - x1);
-                bt = yt2 - mt * x2;
-                for (int j = cx1; j <= cx2; j++)
+                if (cyt < cyb)
                 {
-                    float cyt = 0.0, cyb = 0.0;
-                    for (int x = 0; x < numPortals; x++)
+                    if ((j == cx1 || j + 1 > cx2) && !rorf)
                     {
-                        if (portals[x].rendered == 1)
-                        {
-                            float *p = IntersectionPoint(j, mt * j + bt, j, yb1, portals[x].x1, portals[x].yt1, portals[x].x2, portals[x].yt2);
-                            cyt = Max(*(p + 1), mt * j + bt);
-                            p = IntersectionPoint(j, mt * j + bt, j, yb1, portals[x].x1, portals[x].yb1, portals[x].x2, portals[x].yb2);
-                            cyb = Min(*(p + 1), yb1);
-                        }
+                        RenderLine(j, cyt, cyb, 0x01, 0x01, 0x01);
                     }
-                    if (cyt < cyb)
+                    else
                     {
-                        if ((j == cx1 || j + 1 > cx2) && !rorf)
-                        {
-                            RenderLine(j, cyt, cyb, 0x01, 0x01, 0x01);
-                        }
-                        else
-                        {
-                            RenderLine(j, cyt, cyb, (int)R * light, (int)G * light, (int)B * light);
-                        }
-                        if (!drawn)
-                        {
-                            drawn = 1;
-                        }
+                        RenderLine(j, cyt, cyb, (int)R * light, (int)G * light, (int)B * light);
                     }
-                }
-            }
-            else
-            {
-                mt = (yt2 - yt1) / (x2 - x1);
-                mb = (yb2 - yb1) / (x2 - x1);
-                bt = yt2 - mt * x2;
-                bb = yb2 - mb * x2;
-                for (int j = cx1; j <= cx2; j++)
-                {
-                    float cyt = 0.0, cyb = 0.0;
-                    for (int x = 0; x < numPortals; x++)
+                    if (!drawn)
                     {
-                        if (portals[x].rendered == 1)
-                        {
-                            float *p = IntersectionPoint(j, mt * j + bt, j, mb * j + bb, portals[x].x1, portals[x].yt1, portals[x].x2, portals[x].yt2);
-                            cyt = Max(*(p + 1), mt * j + bt);
-                            p = IntersectionPoint(j, mt * j + bt, j, mb * j + bb, portals[x].x1, portals[x].yb1, portals[x].x2, portals[x].yb2);
-                            cyb = Min(*(p + 1), mb * j + bb);
-                        }
-                    }
-                    if (cyt < cyb)
-                    {
-                        if ((j == cx1 || j + 1 > cx2) && !rorf)
-                        {
-                            RenderLine(j, cyt, cyb, 0x01, 0x01, 0x01);
-                        }
-                        else
-                        {
-                            RenderLine(j, cyt, cyb, (int)R * light, (int)G * light, (int)B * light);
-                        }
-                        if (!drawn)
-                        {
-                            drawn = 1;
-                        }
+                        drawn = 1;
                     }
                 }
             }
@@ -487,13 +475,27 @@ static void RenderWalls()
                         // Wall X transformation
                         s1 = (500 * *(ptr + 1) / *ptr) + WIDTH / 2;
                         s2 = (500 * *(ptr + 3) / *(ptr + 2)) + WIDTH / 2;
+                        // Clamp the wall to the smallest portal
+                        float cx1 = s1, cx2 = s2;
+                        for (int x = 0; x < numPortals; x++)
+                        {
+                            if (portals[x].rendered == 1)
+                            {
+                                cx1 = Max(s1, portals[x].x1);
+                                cx2 = Min(s2, portals[x].x2);
+                            }
+                        }
+                        if (x == 2 && i == 2)
+                        {
+                            printf("cx1: %f cx2: %f\n", cx1, cx2);
+                        }
                         zt1 = (-(sctr->ceilingheight - ph) / *ptr) + HEIGHT / 2;
                         zb1 = ((ph - sctr->floorheight) / *ptr) + HEIGHT / 2;
                         zt2 = (-(sctr->ceilingheight - ph) / *(ptr + 2)) + HEIGHT / 2;
                         zb2 = ((ph - sctr->floorheight) / *(ptr + 2)) + HEIGHT / 2;
 
                         // Wall is facing the player only.
-                        if (s1 < s2)
+                        if (cx1 < cx2)
                         {
                             int drawn = 0;
                             if (sctr->lineDef[i].adjacent > -1)
@@ -504,34 +506,34 @@ static void RenderWalls()
                                     // Create a floor wall for the change in height.
                                     stepy1 = (ph - sectors[sctr->lineDef[i].adjacent - 1].floorheight) / *ptr + HEIGHT / 2;
                                     stepy2 = (ph - sectors[sctr->lineDef[i].adjacent - 1].floorheight) / *(ptr + 2) + HEIGHT / 2;
-                                    DrawLine(s1, s2, stepy1, stepy2, zb1, zb2, 0x37, 0xcd, 0xc1, sctr->lightlevel, 0);
+                                    DrawLine(s1, s2, cx1, cx2, stepy1, stepy2, zb1, zb2, 0x37, 0xcd, 0xc1, sctr->lightlevel, 0);
                                 }
                                 if ((sectors[sctr->lineDef[i].adjacent - 1].ceilingheight - sctr->ceilingheight) < 0)
                                 {
                                     // Create a ceiling for the change in height.
                                     ceily1 = -(sectors[sctr->lineDef[i].adjacent - 1].ceilingheight - ph) / *ptr + HEIGHT / 2;
                                     ceily2 = -(sectors[sctr->lineDef[i].adjacent - 1].ceilingheight - ph) / *(ptr + 2) + HEIGHT / 2;
-                                    DrawLine(s1, s2, zt1, zt2, ceily1, ceily2, 0xa7, 0x37, 0xcd, sctr->lightlevel, 0);
+                                    DrawLine(s1, s2, cx1, cx2, zt1, zt2, ceily1, ceily2, 0xa7, 0x37, 0xcd, sctr->lightlevel, 0);
                                 }
                                 // Draw the center portal for now
-                                drawn = DrawLine(s1, s2, ceily1, ceily2, stepy1, stepy2, 0xDD, 0x00, 0x00, sctr->lightlevel, 0);
+                                drawn = DrawLine(s1, s2, cx1, cx2, ceily1, ceily2, stepy1, stepy2, 0xDD, 0x00, 0x00, sctr->lightlevel, 0);
                                 // Save to list of portals to render if drawn.
                                 if (drawn)
                                 {
-                                    portals[++tempNum - 1] = (struct ViewWindow){s1, s2, ceily1, stepy1, ceily2, stepy2, sctr->lineDef[i].adjacent, 0};
+                                    portals[++tempNum - 1] = (struct ViewWindow){cx1, cx2, ceily1, stepy1, ceily2, stepy2, sctr->lineDef[i].adjacent, 0};
                                     allDone = 0;
                                 }
                             }
                             else
                             {
                                 // Draw a normal wall.
-                                drawn = DrawLine(s1, s2, zt1, zt2, zb1, zb2, 0xcc, 0xc5, 0xce, sctr->lightlevel, 0);
+                                drawn = DrawLine(s1, s2, cx1, cx2, zt1, zt2, zb1, zb2, 0xcc, 0xc5, 0xce, sctr->lightlevel, 0);
                             }
                             // Draw roofs and floors.
                             if (drawn)
                             {
-                                DrawLine(s1, s2, 0, 0, zt1, zt2, 0x79, 0x91, 0xa9, sctr->lightlevel, 1);
-                                DrawLine(s1, s2, zb1, zb2, HEIGHT, HEIGHT, 0x9a, 0x79, 0xa9, sctr->lightlevel, 1);
+                                DrawLine(s1, s2, cx1, cx2, 0, 0, zt1, zt2, 0x79, 0x91, 0xa9, sctr->lightlevel, 1);
+                                DrawLine(s1, s2, cx1, cx2, zb1, zb2, HEIGHT, HEIGHT, 0x9a, 0x79, 0xa9, sctr->lightlevel, 1);
                             }
                         }
                     }
@@ -542,7 +544,6 @@ static void RenderWalls()
         numPortals = tempNum;
     }
     // Clear portals
-    free(portals);
     numPortals = 0;
 }
 
@@ -602,7 +603,7 @@ int main()
     int keysPressed[6], close = 0;
     LoadMapFile();
     SDL_Init(SDL_INIT_EVERYTHING);
-    window = SDL_CreateWindow("2.5d Engine David", 0, 0, WIDTH, HEIGHT, SDL_WINDOW_FULLSCREEN);
+    window = SDL_CreateWindow("2.5d Engine David", 0, 0, WIDTH, HEIGHT, SDL_WINDOW_RESIZABLE);
     surface = SDL_GetWindowSurface(window);
     renderer = SDL_CreateRenderer(window, -1, 0);
     // Get Texture from surface
