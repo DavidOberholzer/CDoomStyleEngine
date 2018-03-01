@@ -141,12 +141,12 @@ float SideOfLine(float px, float py, float x1, float y1, float x2, float y2)
     return CrossProduct(x2 - x1, y2 - y1, px - x1, py - y1);
 }
 
-int Max(float x, float y)
+float Max(float x, float y)
 {
     return x >= y ? x : y;
 }
 
-int Min(float x, float y)
+float Min(float x, float y)
 {
     return x <= y ? x : y;
 }
@@ -158,7 +158,7 @@ float Clamp(float num, float limit)
 
 int RangesOverlap(float a0, float a1, float b0, float b1)
 {
-    return (Max(a0, a1) >= Min(b0, b1) && Min(a0, a1) <= Max(b0, b1)) ? 1 : 0;
+    return ((Max(a0, a1) >= Min(b0, b1)) && (Min(a0, a1) <= Max(b0, b1)));
 }
 
 int BoxesOverlap(float x1, float y1, float x2, float y2, float x3, float y3, float x4, float y4)
@@ -444,7 +444,7 @@ static void RenderWalls()
                                                   player.sector,
                                                   0};
     int allDone = 0;
-    while (!allDone && numPortals < 32)
+    while (!allDone && numPortals <= 16)
     {
         allDone = 1;
         int tempNum = numPortals;
@@ -485,10 +485,6 @@ static void RenderWalls()
                                 cx2 = Min(s2, portals[x].x2);
                             }
                         }
-                        if (x == 2 && i == 2)
-                        {
-                            printf("cx1: %f cx2: %f\n", cx1, cx2);
-                        }
                         zt1 = (-(sctr->ceilingheight - ph) / *ptr) + HEIGHT / 2;
                         zb1 = ((ph - sctr->floorheight) / *ptr) + HEIGHT / 2;
                         zt2 = (-(sctr->ceilingheight - ph) / *(ptr + 2)) + HEIGHT / 2;
@@ -520,7 +516,11 @@ static void RenderWalls()
                                 // Save to list of portals to render if drawn.
                                 if (drawn)
                                 {
-                                    portals[++tempNum - 1] = (struct ViewWindow){cx1, cx2, ceily1, stepy1, ceily2, stepy2, sctr->lineDef[i].adjacent, 0};
+                                    float mt = (ceily2 - ceily1) / (s2 - s1);
+                                    float mb = (stepy2 - stepy1) / (s2 - s1);
+                                    float bt = ceily2 - mt * s2;
+                                    float bb = stepy2 - mb * s2;
+                                    portals[++tempNum - 1] = (struct ViewWindow){cx1, cx2, mt * cx1 + bt, mb * cx1 + bb, mt * cx2 + bt, mb * cx2 + bb, sctr->lineDef[i].adjacent, 0};
                                     allDone = 0;
                                 }
                             }
@@ -530,11 +530,9 @@ static void RenderWalls()
                                 drawn = DrawLine(s1, s2, cx1, cx2, zt1, zt2, zb1, zb2, 0xcc, 0xc5, 0xce, sctr->lightlevel, 0);
                             }
                             // Draw roofs and floors.
-                            if (drawn)
-                            {
-                                DrawLine(s1, s2, cx1, cx2, 0, 0, zt1, zt2, 0x79, 0x91, 0xa9, sctr->lightlevel, 1);
-                                DrawLine(s1, s2, cx1, cx2, zb1, zb2, HEIGHT, HEIGHT, 0x9a, 0x79, 0xa9, sctr->lightlevel, 1);
-                            }
+
+                            DrawLine(s1, s2, cx1, cx2, 0, 0, zt1, zt2, 0x79, 0x91, 0xa9, sctr->lightlevel, 1);
+                            DrawLine(s1, s2, cx1, cx2, zb1, zb2, HEIGHT, HEIGHT, 0x9a, 0x79, 0xa9, sctr->lightlevel, 1);
                         }
                     }
                 }
