@@ -284,11 +284,11 @@ static void RenderLine(float x, float y1, float y2, int R, int G, int B)
 static int DrawLine(float x1, float x2, float cx1, float cx2, float yt1, float yt2, float yb1, float yb2, int R, int G, int B, float light, int rorf)
 {
     int drawn = 0;
+    float cyt = 0.0, cyb = 0.0;
     if ((yt1 == yt2) && (yb1 == yb2))
     {
         for (int j = cx1; j <= cx2; j++)
         {
-            float cyt = 0.0, cyb = 0.0;
             for (int x = 0; x < numPortals; x++)
             {
                 if (portals[x].rendered == 1)
@@ -327,7 +327,6 @@ static int DrawLine(float x1, float x2, float cx1, float cx2, float yt1, float y
             bb = yb2 - mb * x2;
             for (int j = cx1; j <= cx2; j++)
             {
-                float cyt = 0.0, cyb = 0.0;
                 for (int x = 0; x < numPortals; x++)
                 {
                     if (portals[x].rendered == 1)
@@ -361,7 +360,6 @@ static int DrawLine(float x1, float x2, float cx1, float cx2, float yt1, float y
             bt = yt2 - mt * x2;
             for (int j = cx1; j <= cx2; j++)
             {
-                float cyt = 0.0, cyb = 0.0;
                 for (int x = 0; x < numPortals; x++)
                 {
                     if (portals[x].rendered == 1)
@@ -397,7 +395,6 @@ static int DrawLine(float x1, float x2, float cx1, float cx2, float yt1, float y
             bb = yb2 - mb * x2;
             for (int j = cx1; j <= cx2; j++)
             {
-                float cyt = 0.0, cyb = 0.0;
                 for (int x = 0; x < numPortals; x++)
                 {
                     if (portals[x].rendered == 1)
@@ -601,7 +598,7 @@ int main()
     int keysPressed[6], close = 0;
     LoadMapFile();
     SDL_Init(SDL_INIT_EVERYTHING);
-    window = SDL_CreateWindow("2.5d Engine David", 0, 0, WIDTH, HEIGHT, SDL_WINDOW_RESIZABLE);
+    window = SDL_CreateWindow("2.5d Engine David", 0, 0, WIDTH, HEIGHT, SDL_WINDOW_FULLSCREEN);
     surface = SDL_GetWindowSurface(window);
     renderer = SDL_CreateRenderer(window, -1, 0);
     // Get Texture from surface
