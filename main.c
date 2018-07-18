@@ -9,7 +9,6 @@
 #define HEIGHT 480
 #define PI 3.141592653589793238
 #define VIEWANGLE 5 * PI / 12
-#define PLAYERHEIGHT 20
 #define MOVESPEED 0.05
 
 // SDL Window and Surface.
@@ -19,7 +18,12 @@ static SDL_Surface *surface = NULL;
 static SDL_Renderer *renderer = NULL;
 static SDL_Texture *texture = NULL;
 
-static int printed = 0;
+static float playerView = 40;
+static float viewMovement = 0;
+static int viewDown = 1;
+static int playerHeight = 0;
+static int fallHeight = 0;
+static int fallingVelocity = 0;
 
 // Vertex
 struct xy
@@ -265,9 +269,9 @@ float *ClipViewCone(float x1, float y1, float x2, float y2, float angle)
     return ret;
 }
 
-static void RenderLine(int x, int y1, int y2, int R, int G, int B, float distance)
+static void RenderLine(int x, int y1, int y2, int R, int G, int B, float distance, int roof, int ground)
 {
-    float light_level = distance < 4 ? 1 : distance > 10 ? 0.4 : 4 / distance;
+    float light_level = roof == 0 && ground == 0 ? distance < 4 ? 1 : distance > 20 ? 0.2 : 4 / distance : 0.4;
     SDL_SetRenderDrawColor(renderer, R * light_level, G * light_level, B * light_level, 0x00);
     SDL_RenderDrawLine(renderer, x, y1, x, y2);
 }
@@ -295,7 +299,7 @@ static void RenderWalls()
     int end = 0, current = -1;
 
     // Get current player height
-    float ph = PLAYERHEIGHT + sectors[player.sector - 1].floorheight;
+    float ph = (int)playerView + playerHeight;
     do
     {
         current += 1;
@@ -353,10 +357,10 @@ static void RenderWalls()
                         int yb = Clamp(yBottomLimit[x], yTopLimit[x], zb1 * (1 - t) + zb2 * t);
                         float dx = *ptr * (1 - t) + *(ptr + 2) * t;
                         float dy = *(ptr + 1) * (1 - t) + *(ptr + 3) * t;
-                        float distance = fabs(dx) + fabs(dy);
+                        float distance = dx * dx + dy * dy;
                         // Draw roofs and floors.
-                        RenderLine(x, yTopLimit[x], yt, 0x79 * sctr->lightlevel, 0x91 * sctr->lightlevel, 0xa9 * sctr->lightlevel, distance);
-                        RenderLine(x, yb, yBottomLimit[x], 0x9a * sctr->lightlevel, 0x79 * sctr->lightlevel, 0xa9 * sctr->lightlevel, distance);
+                        RenderLine(x, yTopLimit[x], yt, 0x79 * sctr->lightlevel, 0x91 * sctr->lightlevel, 0xa9 * sctr->lightlevel, distance, 1, 0);
+                        RenderLine(x, yb, yBottomLimit[x], 0x9a * sctr->lightlevel, 0x79 * sctr->lightlevel, 0xa9 * sctr->lightlevel, distance, 0, 1);
 
                         if (sctr->lineDef[i].adjacent > -1)
                         {
@@ -364,7 +368,7 @@ static void RenderWalls()
                             {
                                 // Create a floor wall for the change in height.
                                 int stepY = Clamp(yBottomLimit[x], yTopLimit[x], stepy1 * (1 - t) + stepy2 * t);
-                                RenderLine(x, stepY, yb, 0x37 * sctr->lightlevel, 0xcd * sctr->lightlevel, 0xc1 * sctr->lightlevel, distance);
+                                RenderLine(x, stepY, yb, 0x37 * sctr->lightlevel, 0xcd * sctr->lightlevel, 0xc1 * sctr->lightlevel, distance, 0, 0);
                                 yBottomLimit[x] = stepY;
                             }
                             else
@@ -376,7 +380,7 @@ static void RenderWalls()
                             {
                                 // Create a ceiling for the change in height.
                                 int ceilY = Clamp(yBottomLimit[x], yTopLimit[x], ceily1 * (1 - t) + ceily2 * t);
-                                RenderLine(x, yt, ceilY, 0xa7 * sctr->lightlevel, 0x37 * sctr->lightlevel, 0xcd * sctr->lightlevel, distance);
+                                RenderLine(x, yt, ceilY, 0xa7 * sctr->lightlevel, 0x37 * sctr->lightlevel, 0xcd * sctr->lightlevel, distance, 0, 0);
                                 yTopLimit[x] = ceilY;
                             }
                             else
@@ -387,16 +391,12 @@ static void RenderWalls()
                         else
                         {
                             // Draw a normal wall.
-                            RenderLine(x, yt, yb, 0xcc * sctr->lightlevel, 0xc5 * sctr->lightlevel, 0xce * sctr->lightlevel, distance);
+                            RenderLine(x, yt, yb, 0xcc * sctr->lightlevel, 0xc5 * sctr->lightlevel, 0xce * sctr->lightlevel, distance, 0, 0);
                         }
                     }
                     // Load in next in next portal if adjacent sector found.
                     if (sctr->lineDef[i].adjacent > -1 && end != maxSectors - 1)
                     {
-                        if (i == 4)
-                        {
-                            printf("%d\n", current);
-                        }
                         end++;
                         queue[end] = (struct portal){sctr->lineDef[i].adjacent, x1, x2};
                     }
@@ -416,6 +416,12 @@ static void MovePlayer()
         int overlap = BoxesOverlap(player.position.x, player.position.y, player.position.x + player.velocity.x, player.position.y + player.velocity.y, sectors[sec].lineDef[i].x1, sectors[sec].lineDef[i].y1, sectors[sec].lineDef[i].x2, sectors[sec].lineDef[i].y2);
         if (sectors[sec].lineDef[i].adjacent > -1 && crossing < 0 && overlap)
         {
+            int nextFloorHeight = sectors[sectors[sec].lineDef[i].adjacent - 1].floorheight;
+            if (sectors[sec].floorheight < nextFloorHeight)
+            {
+                playerHeight = nextFloorHeight;
+            }
+            fallHeight = nextFloorHeight;
             player.sector = sectors[sec].lineDef[i].adjacent;
         }
     }
@@ -456,6 +462,47 @@ static void HandleCollision()
         }
     }
     MovePlayer();
+}
+
+static void HeadBob()
+{
+    if (playerView >= 40 || playerView <= 20)
+    {
+        if (playerView >= 40)
+        {
+            viewDown = 1;
+        }
+        else
+        {
+            viewDown = 0;
+        }
+        viewMovement = 0;
+    }
+    viewMovement = viewDown == 1 ? viewMovement - 0.2 : viewMovement + 0.2;
+    playerView += viewMovement;
+}
+
+static void HandleFalling()
+{
+    if (playerHeight > fallHeight)
+    {
+        fallingVelocity += 4;
+        playerHeight -= fallingVelocity;
+        if (playerHeight < fallHeight)
+        {
+            fallingVelocity = 0;
+        }
+    }
+
+    if (playerHeight < fallHeight)
+    {
+        playerHeight += ++fallingVelocity;
+        if (playerHeight > fallHeight)
+        {
+            fallingVelocity = 0;
+            playerHeight = fallHeight;
+        }
+    }
 }
 
 int main()
@@ -526,7 +573,15 @@ int main()
         if (player.velocity.x || player.velocity.y)
         {
             HandleCollision();
+            HeadBob();
         }
+        else
+        {
+            viewMovement = 0;
+            playerView = 40;
+        }
+
+        HandleFalling();
 
         player.angle -= keysPressed[4] ? 0.03f : 0;
         player.angle += keysPressed[5] ? 0.03f : 0;

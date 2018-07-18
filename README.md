@@ -1,4 +1,4 @@
-# CDOOMSyleEngine
+# CDOOMStyleEngine
 
 ## Running it!
 
@@ -17,6 +17,6 @@ E - Rotate Clockwise
 
 ## Todos && Notes
 
-* Maybe add falling slower than instant.
+* Improve head bob reverting to standard height.
 * Mouse support.
-* Funny edges... not a result of the line drawing. Its when integer results of floating point calculations vary. 
+* Funny edges... not a result of the line drawing. It's when integer results of floating point calculations vary. 
