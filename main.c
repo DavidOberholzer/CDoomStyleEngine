@@ -5,8 +5,8 @@
 #include <time.h>
 #include <unistd.h>
 
-#define WIDTH 320
-#define HEIGHT 240
+#define WIDTH 640
+#define HEIGHT 480
 #define PI 3.141592653589793238
 #define VIEWANGLE 5 * PI / 12
 #define PLAYERHEIGHT 20
@@ -144,19 +144,9 @@ float Min(float x, float y)
     return x <= y ? x : y;
 }
 
-float Clamp(int top, int bottom, float num)
+int Clamp(int top, int bottom, float num)
 {
     return Max(Min(top, num), bottom);
-}
-
-int ClampToScreenX(int num)
-{
-    return Max(Min(WIDTH - 1, num), 0);
-}
-
-int ClampToScreenY(int num)
-{
-    return Max(Min(HEIGHT - 1, num), 0);
 }
 
 int RangesOverlap(float a0, float a1, float b0, float b1)
@@ -275,52 +265,45 @@ float *ClipViewCone(float x1, float y1, float x2, float y2, float angle)
     return ret;
 }
 
-static void RenderLine(int x, int y1, int y2, int R, int G, int B, float distance, float zBuffer[WIDTH][HEIGHT])
+static void RenderLine(int x, int y1, int y2, int R, int G, int B, float distance)
 {
-    float light_level = distance < 4 ? 1 : distance > 20 ? 0.2 : 4 / distance;
+    float light_level = distance < 4 ? 1 : distance > 10 ? 0.4 : 4 / distance;
     SDL_SetRenderDrawColor(renderer, R * light_level, G * light_level, B * light_level, 0x00);
-    for (int y = y1; y <= y2; y++)
-    {
-        if (zBuffer[x][y] > distance || zBuffer[x][y] == -1)
-        {
-            zBuffer[x][y] = distance;
-            SDL_RenderDrawPoint(renderer, x, y);
-        }
-    }
-}
-
-static void DrawLine(int x1, int x2, int yt1, int yt2, int yb1, int yb2, int R, int G, int B, float light, int rorf, float *ptr, float zBuffer[WIDTH][HEIGHT])
-{
-    for (float x = x1; x <= x2; x++)
-    {
-        if (x >= 0 && x < WIDTH)
-        {
-            float t = (x - x1) / (x2 - x1);
-            float dx = *ptr * (1 - t) + *(ptr + 2) * t;
-            float dy = *(ptr + 1) * (1 - t) + *(ptr + 3) * t;
-            float distance = fabs(dx) + fabs(dy);
-            int yt = ClampToScreenY(yt1 * (1 - t) + yt2 * t);
-            int yb = ClampToScreenY(yb1 * (1 - t) + yb2 * t);
-            RenderLine(x, yt, yb, R * light, G * light, B * light, distance, zBuffer);
-        }
-    }
+    SDL_RenderDrawLine(renderer, x, y1, x, y2);
 }
 
 static void RenderWalls()
 {
-    // Get current sector
-    float ph = PLAYERHEIGHT + sectors[player.sector - 1].floorheight;
-    float zBuffer[WIDTH][HEIGHT];
+    int maxSectors = 16;
+    int yTopLimit[WIDTH], yBottomLimit[WIDTH], renderedSectors[numSectors];
     for (int i = 0; i < WIDTH; i++)
     {
-        for (int j = 0; j < HEIGHT; j++)
-        {
-            zBuffer[i][j] = -1;
-        }
+        yTopLimit[i] = 0;
+        yBottomLimit[i] = HEIGHT - 1;
     }
-    for (int k = 0; k < numSectors; k++)
+    for (int i = 0; i < numSectors; i++)
     {
-        struct sector *sctr = &sectors[k];
+        renderedSectors[i] = 0;
+    }
+    struct portal
+    {
+        int sectorNo, x1, x2;
+    } queue[maxSectors];
+
+    // Whole screen is the initial portal.
+    *queue = (struct portal){player.sector, 0, WIDTH - 1};
+    int end = 0, current = -1;
+
+    // Get current player height
+    float ph = PLAYERHEIGHT + sectors[player.sector - 1].floorheight;
+    do
+    {
+        current += 1;
+        struct portal *currentPortal = queue + current;
+        struct sector *sctr = &sectors[currentPortal->sectorNo - 1];
+        // if (renderedSectors[currentPortal->sectorNo] & 0x21)
+        //     continue;
+        // ++renderedSectors[currentPortal->sectorNo];
         for (int i = 0; i < sctr->lineNum; i++)
         {
             // First Vector rotation of the lines around the player.
@@ -342,7 +325,7 @@ static void RenderWalls()
 
             if (*ptr > 0 && *(ptr + 2) > 0)
             {
-                int s1, s2, zt1, zb1, zt2, zb2;
+                int s1, s2, zt1, zb1, zt2, zb2, stepy1, stepy2, ceily1, ceily2;
                 // Wall X transformation
                 s1 = (500 * *(ptr + 1) / *ptr) + WIDTH / 2;
                 s2 = (500 * *(ptr + 3) / *(ptr + 2)) + WIDTH / 2;
@@ -350,40 +333,78 @@ static void RenderWalls()
                 zb1 = ((ph - sctr->floorheight) / *ptr) + HEIGHT / 2;
                 zt2 = (-(sctr->ceilingheight - ph) / *(ptr + 2)) + HEIGHT / 2;
                 zb2 = ((ph - sctr->floorheight) / *(ptr + 2)) + HEIGHT / 2;
+                if (sctr->lineDef[i].adjacent > -1)
+                {
+                    stepy1 = (ph - sectors[sctr->lineDef[i].adjacent - 1].floorheight) / *ptr + HEIGHT / 2;
+                    stepy2 = (ph - sectors[sctr->lineDef[i].adjacent - 1].floorheight) / *(ptr + 2) + HEIGHT / 2;
+                    ceily1 = -(sectors[sctr->lineDef[i].adjacent - 1].ceilingheight - ph) / *ptr + HEIGHT / 2;
+                    ceily2 = -(sectors[sctr->lineDef[i].adjacent - 1].ceilingheight - ph) / *(ptr + 2) + HEIGHT / 2;
+                }
 
                 // Wall is facing the player only.
                 if (s1 < s2)
                 {
-                    if (sctr->lineDef[i].adjacent > -1)
+                    int x1 = Max(currentPortal->x1, s1);
+                    int x2 = Min(currentPortal->x2, s2);
+                    for (int x = x1; x <= x2; x++)
                     {
-                        int stepy1 = zb1, stepy2 = zb2, ceily1 = zt1, ceily2 = zt2;
-                        if ((sectors[sctr->lineDef[i].adjacent - 1].floorheight - sctr->floorheight) > 0)
+                        float t = (x - s1) / (float)(s2 - s1);
+                        int yt = Clamp(yBottomLimit[x], yTopLimit[x], zt1 * (1 - t) + zt2 * t);
+                        int yb = Clamp(yBottomLimit[x], yTopLimit[x], zb1 * (1 - t) + zb2 * t);
+                        float dx = *ptr * (1 - t) + *(ptr + 2) * t;
+                        float dy = *(ptr + 1) * (1 - t) + *(ptr + 3) * t;
+                        float distance = fabs(dx) + fabs(dy);
+                        // Draw roofs and floors.
+                        RenderLine(x, yTopLimit[x], yt, 0x79 * sctr->lightlevel, 0x91 * sctr->lightlevel, 0xa9 * sctr->lightlevel, distance);
+                        RenderLine(x, yb, yBottomLimit[x], 0x9a * sctr->lightlevel, 0x79 * sctr->lightlevel, 0xa9 * sctr->lightlevel, distance);
+
+                        if (sctr->lineDef[i].adjacent > -1)
                         {
-                            // Create a floor wall for the change in height.
-                            stepy1 = (ph - sectors[sctr->lineDef[i].adjacent - 1].floorheight) / *ptr + HEIGHT / 2;
-                            stepy2 = (ph - sectors[sctr->lineDef[i].adjacent - 1].floorheight) / *(ptr + 2) + HEIGHT / 2;
-                            DrawLine(s1, s2, stepy1, stepy2, zb1, zb2, 0x37, 0xcd, 0xc1, sctr->lightlevel, 0, points, zBuffer);
+                            if (sectors[sctr->lineDef[i].adjacent - 1].floorheight > sctr->floorheight)
+                            {
+                                // Create a floor wall for the change in height.
+                                int stepY = Clamp(yBottomLimit[x], yTopLimit[x], stepy1 * (1 - t) + stepy2 * t);
+                                RenderLine(x, stepY, yb, 0x37 * sctr->lightlevel, 0xcd * sctr->lightlevel, 0xc1 * sctr->lightlevel, distance);
+                                yBottomLimit[x] = stepY;
+                            }
+                            else
+                            {
+                                yBottomLimit[x] = yb;
+                            }
+
+                            if (sectors[sctr->lineDef[i].adjacent - 1].ceilingheight < sctr->ceilingheight)
+                            {
+                                // Create a ceiling for the change in height.
+                                int ceilY = Clamp(yBottomLimit[x], yTopLimit[x], ceily1 * (1 - t) + ceily2 * t);
+                                RenderLine(x, yt, ceilY, 0xa7 * sctr->lightlevel, 0x37 * sctr->lightlevel, 0xcd * sctr->lightlevel, distance);
+                                yTopLimit[x] = ceilY;
+                            }
+                            else
+                            {
+                                yTopLimit[x] = yt;
+                            }
                         }
-                        if ((sectors[sctr->lineDef[i].adjacent - 1].ceilingheight - sctr->ceilingheight) < 0)
+                        else
                         {
-                            // Create a ceiling for the change in height.
-                            ceily1 = -(sectors[sctr->lineDef[i].adjacent - 1].ceilingheight - ph) / *ptr + HEIGHT / 2;
-                            ceily2 = -(sectors[sctr->lineDef[i].adjacent - 1].ceilingheight - ph) / *(ptr + 2) + HEIGHT / 2;
-                            DrawLine(s1, s2, zt1, zt2, ceily1, ceily2, 0xa7, 0x37, 0xcd, sctr->lightlevel, 0, points, zBuffer);
+                            // Draw a normal wall.
+                            RenderLine(x, yt, yb, 0xcc * sctr->lightlevel, 0xc5 * sctr->lightlevel, 0xce * sctr->lightlevel, distance);
                         }
                     }
-                    else
+                    // Load in next in next portal if adjacent sector found.
+                    if (sctr->lineDef[i].adjacent > -1 && end != maxSectors - 1)
                     {
-                        // Draw a normal wall.
-                        DrawLine(s1, s2, zt1, zt2, zb1, zb2, 0xcc, 0xc5, 0xce, sctr->lightlevel, 0, points, zBuffer);
+                        if (i == 4)
+                        {
+                            printf("%d\n", current);
+                        }
+                        end++;
+                        queue[end] = (struct portal){sctr->lineDef[i].adjacent, x1, x2};
                     }
-                    // Draw roofs and floors.
-                    DrawLine(s1, s2, 0, 0, zt1 - 1, zt2 - 1, 0x79, 0x91, 0xa9, sctr->lightlevel, 1, points, zBuffer);
-                    DrawLine(s1, s2, zb1 + 1, zb2 + 1, HEIGHT, HEIGHT, 0x9a, 0x79, 0xa9, sctr->lightlevel, 1, points, zBuffer);
                 }
             }
         }
-    }
+        // ++renderedSectors[currentPortal->sectorNo];
+    } while (current != end);
 }
 
 static void MovePlayer()
