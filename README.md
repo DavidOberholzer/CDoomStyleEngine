@@ -18,5 +18,5 @@ E - Rotate Clockwise
 ## Todos && Notes
 
 * Maybe add falling slower than instant.
-* Mouse support
-* Fix line drawing algorithm (funny edges on top and bottom).
+* Mouse support.
+* Funny edges... not a result of the line drawing. Its when integer results of floating point calculations vary. 
