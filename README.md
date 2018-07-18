@@ -17,7 +17,6 @@ E - Rotate Clockwise
 
 ## Todos && Notes
 
-* Portal Rendering is quite slow with complex maps and is not perfect rendering... Will change when I find out more about rendering methods.
 * Maybe add falling slower than instant.
 * Mouse support
 * Fix line drawing algorithm (funny edges on top and bottom).
