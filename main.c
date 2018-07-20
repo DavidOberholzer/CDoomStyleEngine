@@ -14,7 +14,7 @@
 // SDL Window and Surface.
 
 static SDL_Window *window = NULL;
-static SDL_Surface *surface = NULL;
+//static SDL_Surface *surface = NULL;
 static SDL_Renderer *renderer = NULL;
 static SDL_Texture *texture = NULL;
 
@@ -507,15 +507,39 @@ static void HandleFalling()
 
 int main()
 {
-    int keysPressed[6], close = 0;
+    int keysPressed[6] = {0,0,0,0,0,0}; //Init key states to not pressed.
+    int close = 0;
     LoadMapFile();
     SDL_Init(SDL_INIT_EVERYTHING);
+    
     window = SDL_CreateWindow("2.5d Engine David", 0, 0, WIDTH, HEIGHT, SDL_WINDOW_MAXIMIZED);
-    surface = SDL_GetWindowSurface(window);
+    
+    if (window == NULL)
+    {
+        printf("SDL_CreateWindow failed: %s\n", SDL_GetError());
+        exit(1);
+    }
+    
+    //surface = SDL_GetWindowSurface(window); Should apparently be used with SDL_CreateRenderer!
+    
     renderer = SDL_CreateRenderer(window, -1, 0);
-    // Get Texture from surface
+    
+    if (renderer == NULL)
+    {
+        printf("SDL_CreateRenderer failed: %s\n", SDL_GetError());
+        exit(1);
+    }
+    
+    // Get Texture from renderer.
     texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, WIDTH, HEIGHT);
+    
+    if (texture == NULL) {
+        printf("SDL_CreateTexture failed: %s\n", SDL_GetError());
+        exit(1);
+    }
+    
     SDL_ShowCursor(SDL_DISABLE);
+    
     while (!close)
     {
         SDL_SetRenderTarget(renderer, texture);
