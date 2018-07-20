@@ -14,7 +14,7 @@
 // SDL Window and Surface.
 
 static SDL_Window *window = NULL;
-static SDL_Surface *surface = NULL;
+//static SDL_Surface *surface = NULL;
 static SDL_Renderer *renderer = NULL;
 static SDL_Texture *texture = NULL;
 
@@ -353,8 +353,8 @@ static void RenderWalls()
                     for (int x = x1; x <= x2; x++)
                     {
                         float t = (x - s1) / (float)(s2 - s1);
-                        int yt = Clamp(yBottomLimit[x], yTopLimit[x], zt1 * (1 - t) + zt2 * t);
-                        int yb = Clamp(yBottomLimit[x], yTopLimit[x], zb1 * (1 - t) + zb2 * t);
+                        int yt = Clamp(yBottomLimit[x], yTopLimit[x], zt1 * (1 - t) + zt2 * t + 0.5); // +0.5 to remove jaggies.
+                        int yb = Clamp(yBottomLimit[x], yTopLimit[x], zb1 * (1 - t) + zb2 * t + 0.5); // +0.5 to remove jaggies.
                         float dx = *ptr * (1 - t) + *(ptr + 2) * t;
                         float dy = *(ptr + 1) * (1 - t) + *(ptr + 3) * t;
                         float distance = dx * dx + dy * dy;
@@ -367,7 +367,7 @@ static void RenderWalls()
                             if (sectors[sctr->lineDef[i].adjacent - 1].floorheight > sctr->floorheight)
                             {
                                 // Create a floor wall for the change in height.
-                                int stepY = Clamp(yBottomLimit[x], yTopLimit[x], stepy1 * (1 - t) + stepy2 * t);
+                                int stepY = Clamp(yBottomLimit[x], yTopLimit[x], stepy1 * (1 - t) + stepy2 * t+0.5); // +0.5 to remove jaggies.
                                 RenderLine(x, stepY, yb, 0x37 * sctr->lightlevel, 0xcd * sctr->lightlevel, 0xc1 * sctr->lightlevel, distance, 0, 0);
                                 yBottomLimit[x] = stepY;
                             }
@@ -379,7 +379,7 @@ static void RenderWalls()
                             if (sectors[sctr->lineDef[i].adjacent - 1].ceilingheight < sctr->ceilingheight)
                             {
                                 // Create a ceiling for the change in height.
-                                int ceilY = Clamp(yBottomLimit[x], yTopLimit[x], ceily1 * (1 - t) + ceily2 * t);
+                                int ceilY = Clamp(yBottomLimit[x], yTopLimit[x], ceily1 * (1 - t) + ceily2 * t + 0.5); // +0.5 to remove jaggies.
                                 RenderLine(x, yt, ceilY, 0xa7 * sctr->lightlevel, 0x37 * sctr->lightlevel, 0xcd * sctr->lightlevel, distance, 0, 0);
                                 yTopLimit[x] = ceilY;
                             }
@@ -507,15 +507,39 @@ static void HandleFalling()
 
 int main()
 {
-    int keysPressed[6], close = 0;
+    int keysPressed[6] = {0,0,0,0,0,0}; //Init key states to not pressed.
+    int close = 0;
     LoadMapFile();
     SDL_Init(SDL_INIT_EVERYTHING);
+    
     window = SDL_CreateWindow("2.5d Engine David", 0, 0, WIDTH, HEIGHT, SDL_WINDOW_MAXIMIZED);
-    surface = SDL_GetWindowSurface(window);
+    
+    if (window == NULL)
+    {
+        printf("SDL_CreateWindow failed: %s\n", SDL_GetError());
+        exit(1);
+    }
+    
+    //surface = SDL_GetWindowSurface(window); Should apparently NOT be used with SDL_CreateRenderer!
+    
     renderer = SDL_CreateRenderer(window, -1, 0);
-    // Get Texture from surface
+    
+    if (renderer == NULL)
+    {
+        printf("SDL_CreateRenderer failed: %s\n", SDL_GetError());
+        exit(1);
+    }
+    
+    // Get Texture from renderer.
     texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, WIDTH, HEIGHT);
+    
+    if (texture == NULL) {
+        printf("SDL_CreateTexture failed: %s\n", SDL_GetError());
+        exit(1);
+    }
+    
     SDL_ShowCursor(SDL_DISABLE);
+    
     while (!close)
     {
         SDL_SetRenderTarget(renderer, texture);

@@ -1,5 +1,5 @@
 compile:
-	gcc -o game "/home/daveguy/Documents/projects/CDoomStyleEngine/main.c" -lSDL2 -lm
+	gcc -o game "main.c" -lSDL2 -lm
 run:
 	./game
 car:
