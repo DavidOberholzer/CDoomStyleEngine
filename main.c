@@ -520,7 +520,7 @@ int main()
         exit(1);
     }
     
-    //surface = SDL_GetWindowSurface(window); Should apparently be used with SDL_CreateRenderer!
+    //surface = SDL_GetWindowSurface(window); Should apparently NOT be used with SDL_CreateRenderer!
     
     renderer = SDL_CreateRenderer(window, -1, 0);
     
