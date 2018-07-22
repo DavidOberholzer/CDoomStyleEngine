@@ -19,4 +19,3 @@ E - Rotate Clockwise
 
 * Improve head bob reverting to standard height.
 * Mouse support.
-* Funny edges... not a result of the line drawing. It's when integer results of floating point calculations vary. 

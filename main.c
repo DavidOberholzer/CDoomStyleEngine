@@ -1,9 +1,14 @@
+// External Includes
 #include <math.h>
 #include <SDL2/SDL.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
 #include <unistd.h>
+// Local Includes
+#include "data_io.h"
+#include "structures.h"
+#include "worldmath.h"
 
 #define WIDTH 640
 #define HEIGHT 480
@@ -24,250 +29,6 @@ static int viewDown = 1;
 static int playerHeight = 0;
 static int fallHeight = 0;
 static int fallingVelocity = 0;
-
-// Vertex
-struct xy
-{
-    float x, y;
-};
-
-// Sectors
-static struct sector
-{
-    float floorheight, ceilingheight, lightlevel;
-    struct line
-    {
-        float x1, y1, x2, y2;
-        signed char adjacent;
-    } * lineDef;
-    unsigned lineNum;
-} *sectors = NULL;
-int numSectors = 0;
-
-// Player location
-static struct player
-{
-    struct xy position, velocity;
-    float angle;
-    unsigned sector;
-} player;
-
-static void LoadMapFile()
-{
-    FILE *data = fopen("maps/theoverlook.txt", "rt");
-    if (!data)
-    {
-        perror("Map did not load!\n");
-        exit(1);
-    }
-    char Buf[256], word[256], *ptr;
-    struct line *lines = NULL, ln;
-    struct xy position = {0, 0};
-    int n, lineCount = 0, sector;
-    float angle;
-    while (fgets(Buf, sizeof Buf, data))
-    {
-        ptr = Buf;
-        if (sscanf(ptr, "%32s%n", word, &n) == 1)
-        {
-            switch (word[0])
-            {
-            // Load lines
-            case 'l':
-                sscanf(ptr += n, "%f%f%f%f%1s%n", &ln.x1, &ln.y1, &ln.x2, &ln.y2, word, &n);
-                ln.adjacent = word[0] == 'x' ? -1 : atoi(word);
-                lines = realloc(lines, ++lineCount * sizeof(*lines));
-                lines[lineCount - 1] = ln;
-                break;
-            // Load Sectors
-            case 's':
-                sectors = realloc(sectors, ++numSectors * sizeof(*sectors));
-                struct sector *sctr = &sectors[numSectors - 1];
-                sscanf(ptr += n, "%f%f%f%n", &sctr->floorheight, &sctr->ceilingheight, &sctr->lightlevel, &n);
-                int l;
-                int *lineLoc = NULL;
-                for (l = 0; sscanf(ptr += n, "%32s%n", word, &n) == 1;)
-                {
-                    lineLoc = realloc(lineLoc, ++l * sizeof(*lineLoc));
-                    lineLoc[l - 1] = atoi(word);
-                }
-                sctr->lineNum = l;
-                sctr->lineDef = malloc(l * sizeof(*sctr->lineDef));
-                for (int m = 0; m < l; m++)
-                {
-                    sctr->lineDef[m] = lines[lineLoc[m] - 1];
-                }
-                free(lineLoc);
-                break;
-            // Load player position and starting sector
-            case 'p':
-                sscanf(ptr += n, "%f%f%f%d%n", &position.x, &position.y, &angle, &sector, &n);
-                player = (struct player){{position.x, position.y},
-                                         {0, 0},
-                                         angle,
-                                         sector};
-                break;
-            }
-        }
-    }
-}
-
-static void UnloadData()
-{
-    for (int a = 0; a < numSectors; a++)
-    {
-        free(sectors[a].lineDef);
-    }
-    free(sectors);
-    sectors = NULL;
-    numSectors = 0;
-}
-
-float DotProduct(float vx1, float vy1, float vx2, float vy2)
-{
-    return (vx1 * vx2 + vy1 * vy2);
-}
-
-float CrossProduct(float vx1, float vy1, float vx2, float vy2)
-{
-    return (vx1 * vy2 - vx2 * vy1);
-}
-
-float SideOfLine(float px, float py, float x1, float y1, float x2, float y2)
-{
-    return CrossProduct(x2 - x1, y2 - y1, px - x1, py - y1);
-}
-
-float Max(float x, float y)
-{
-    return x >= y ? x : y;
-}
-
-float Min(float x, float y)
-{
-    return x <= y ? x : y;
-}
-
-int Clamp(int top, int bottom, float num)
-{
-    return Max(Min(top, num), bottom);
-}
-
-int RangesOverlap(float a0, float a1, float b0, float b1)
-{
-    return ((Max(a0, a1) >= Min(b0, b1)) && (Min(a0, a1) <= Max(b0, b1)));
-}
-
-int BoxesOverlap(float x1, float y1, float x2, float y2, float x3, float y3, float x4, float y4)
-{
-    return (RangesOverlap(x1, x2, x3, x4) && RangesOverlap(y1, y2, y3, y4));
-}
-
-float *VectorProjection(float x1, float y1, float x2, float y2)
-{
-    static float ret[2];
-    ret[0] = x2 * DotProduct(x1, y1, x2, y2) / (x2 * x2 + y2 * y2);
-    ret[1] = y2 * DotProduct(x1, y1, x2, y2) / (x2 * x2 + y2 * y2);
-    return ret;
-}
-
-float *IntersectionPoint(float x1, float y1, float x2, float y2, float x3, float y3, float x4, float y4)
-{
-    static float ret[3];
-    float d = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4);
-    if (d == 0)
-    {
-        ret[0] = 0;
-        ret[1] = 0;
-        ret[2] = 0;
-    }
-    else
-    {
-        ret[0] = (CrossProduct(x1, y1, x2, y2) * (x3 - x4) - (x1 - x2) * CrossProduct(x3, y3, x4, y4)) / d;
-        ret[1] = (CrossProduct(x1, y1, x2, y2) * (y3 - y4) - (y1 - y2) * CrossProduct(x3, y3, x4, y4)) / d;
-        ret[2] = 1;
-    }
-    return ret;
-}
-
-float *ClipViewCone(float x1, float y1, float x2, float y2, float angle)
-{
-    // Top cone line
-    float x3 = 1;
-    float tangle = tan(angle);
-    float y3 = x3 * -tangle;
-    float *p1;
-    static float ret[4];
-
-    p1 = IntersectionPoint(x1, y1, x2, y2, 0.0, 0.0, x3, y3);
-
-    if (*(p1 + 2) == 1)
-    {
-        if (*p1 > 0)
-        {
-            if (!((x1 < -(y1 / tangle)) && (x2 < -(y2 / tangle))))
-            {
-                if (x1 < -(y1 / tangle))
-                {
-                    x1 = *p1;
-                    y1 = *(p1 + 1);
-                }
-                if (x2 < -(y2 / tangle))
-                {
-                    x2 = *p1;
-                    y2 = *(p1 + 1);
-                }
-            }
-            else
-            {
-                ret[0] = -1;
-                ret[1] = -1;
-                ret[2] = -1;
-                ret[3] = -1;
-                return ret;
-            }
-        }
-    }
-
-    // Bottom cone line
-    y3 = x3 * tangle;
-    float *p2;
-
-    p2 = IntersectionPoint(x1, y1, x2, y2, 0, 0, x3, y3);
-    if (*(p2 + 2) == 1)
-    {
-        if (*p2 > 0)
-        {
-            if (!((x1 < (y1 / tangle)) && (x2 < (y2 / tangle))))
-            {
-                if (x1 < (y1 / tangle))
-                {
-                    x1 = *p2;
-                    y1 = *(p2 + 1);
-                }
-                if (x2 < (y2 / tangle))
-                {
-                    x2 = *p2;
-                    y2 = *(p2 + 1);
-                }
-            }
-            else
-            {
-                ret[0] = -1;
-                ret[1] = -1;
-                ret[2] = -1;
-                ret[3] = -1;
-                return ret;
-            }
-        }
-    }
-
-    ret[0] = x1;
-    ret[1] = y1;
-    ret[2] = x2;
-    ret[3] = y2;
-    return ret;
-}
 
 static void RenderLine(int x, int y1, int y2, int R, int G, int B, float distance, int roof, int ground)
 {
@@ -367,7 +128,7 @@ static void RenderWalls()
                             if (sectors[sctr->lineDef[i].adjacent - 1].floorheight > sctr->floorheight)
                             {
                                 // Create a floor wall for the change in height.
-                                int stepY = Clamp(yBottomLimit[x], yTopLimit[x], stepy1 * (1 - t) + stepy2 * t+0.5); // +0.5 to remove jaggies.
+                                int stepY = Clamp(yBottomLimit[x], yTopLimit[x], stepy1 * (1 - t) + stepy2 * t + 0.5); // +0.5 to remove jaggies.
                                 RenderLine(x, stepY, yb, 0x37 * sctr->lightlevel, 0xcd * sctr->lightlevel, 0xc1 * sctr->lightlevel, distance, 0, 0);
                                 yBottomLimit[x] = stepY;
                             }
@@ -507,39 +268,40 @@ static void HandleFalling()
 
 int main()
 {
-    int keysPressed[6] = {0,0,0,0,0,0}; //Init key states to not pressed.
+    int keysPressed[6] = {0, 0, 0, 0, 0, 0}; //Init key states to not pressed.
     int close = 0;
     LoadMapFile();
     SDL_Init(SDL_INIT_EVERYTHING);
-    
+
     window = SDL_CreateWindow("2.5d Engine David", 0, 0, WIDTH, HEIGHT, SDL_WINDOW_MAXIMIZED);
-    
+
     if (window == NULL)
     {
         printf("SDL_CreateWindow failed: %s\n", SDL_GetError());
         exit(1);
     }
-    
+
     //surface = SDL_GetWindowSurface(window); Should apparently NOT be used with SDL_CreateRenderer!
-    
+
     renderer = SDL_CreateRenderer(window, -1, 0);
-    
+
     if (renderer == NULL)
     {
         printf("SDL_CreateRenderer failed: %s\n", SDL_GetError());
         exit(1);
     }
-    
+
     // Get Texture from renderer.
     texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, WIDTH, HEIGHT);
-    
-    if (texture == NULL) {
+
+    if (texture == NULL)
+    {
         printf("SDL_CreateTexture failed: %s\n", SDL_GetError());
         exit(1);
     }
-    
+
     SDL_ShowCursor(SDL_DISABLE);
-    
+
     while (!close)
     {
         SDL_SetRenderTarget(renderer, texture);
