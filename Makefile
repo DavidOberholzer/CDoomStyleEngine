@@ -1,7 +1,7 @@
 compile:
-	gcc -o game "main.c" "data_io.c" "worldmath.c" -lSDL2 -lm
+	gcc -o app "main.c" "data_io.c" "game.c" "graphics.c" "worldmath.c" -lSDL2 -lm
 run:
-	./game
+	./app
 car:
 	make compile
 	make run
