@@ -1,6 +1,8 @@
 #include <SDL2/SDL.h>
 
 #include "graphics.h"
+#include "data_io.h"
+#include "structures.h"
 
 // SDL Window and Surface.
 SDL_Window *window = NULL;
@@ -58,6 +60,23 @@ void PresentFrame()
 	SDL_SetRenderTarget(renderer, NULL);
 	SDL_RenderCopy(renderer, texture, NULL, NULL);
 	SDL_RenderPresent(renderer);
+}
+
+void DrawTexture(int index)
+{
+	struct texture *texture = &textures[index];
+	int length = texture->width * texture->height * texture->components;
+	int width = 0;
+	for (int i = 0; i < length; i += texture->components)
+	{
+		if (width == 400) {
+			width = 0;
+		}
+		width++;
+		int height = floor(i / (float)(texture->width * texture->components));
+		SDL_SetRenderDrawColor(renderer, texture->pixels[i], texture->pixels[i + 1], texture->pixels[i + 2], 0x00);
+		SDL_RenderDrawPoint(renderer, width, height);
+	}
 }
 
 void TearDownGraphics()

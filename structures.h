@@ -31,4 +31,13 @@ struct player
 	unsigned sector;
 };
 
+// Texture Structure
+struct texture
+{
+	unsigned char *pixels;
+	int width;
+	int height;
+	int components;
+};
+
 #endif

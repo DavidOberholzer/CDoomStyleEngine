@@ -246,7 +246,8 @@ void GameLoop()
 	while (!close)
 	{
 		ClearFrame();
-		RenderWalls();
+		DrawTexture(0);
+		// RenderWalls();
 		PresentFrame();
 		SDL_Event event;
 		while (SDL_PollEvent(&event))

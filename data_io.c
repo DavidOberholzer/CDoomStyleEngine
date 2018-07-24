@@ -1,12 +1,34 @@
 // External Includes
+#include <setjmp.h>
 #include <stdio.h>
+#include <string.h>
+#include <stddef.h>
+#include "jpeglib.h"
 // Local Includes
 #include "data_io.h"
 #include "structures.h"
 
+struct texture *textures = NULL;
+int numTextures = 0;
 struct sector *sectors = NULL;
 int numSectors = 0;
 struct player player;
+
+// Custom Error Handler
+struct my_error_mgr
+{
+    struct jpeg_error_mgr pub;
+    jmp_buf setjmp_buffer;
+};
+
+typedef struct my_error_mgr *my_error_ptr;
+
+void my_error_exit(j_common_ptr cinfo)
+{
+    my_error_ptr myerr = (my_error_ptr)cinfo->err;
+    (*cinfo->err->output_message)(cinfo);
+    longjmp(myerr->setjmp_buffer, 1);
+}
 
 void LoadMapFile()
 {
@@ -68,8 +90,70 @@ void LoadMapFile()
     }
 }
 
+void LoadTexture(char *filename)
+{
+    textures = realloc(textures, ++numTextures * sizeof(*textures));
+    struct texture *texture = &textures[numTextures - 1];
+    struct jpeg_decompress_struct cinfo;
+    struct my_error_mgr jerr;
+    FILE *infile;
+    JSAMPARRAY buffer;
+    int buffer_height = 1;
+    int row_stride;
+
+    if ((infile = fopen(filename, "rb")) == NULL)
+    {
+        printf("Can't open %s\n", filename);
+        exit(1);
+    }
+
+    // Override error routine
+    cinfo.err = jpeg_std_error(&jerr.pub);
+    jerr.pub.error_exit = my_error_exit;
+    if (setjmp(jerr.setjmp_buffer))
+    {
+        jpeg_destroy_decompress(&cinfo);
+        fclose(infile);
+        printf("JPEG read error!");
+        exit(1);
+    }
+    jpeg_create_decompress(&cinfo);
+    jpeg_stdio_src(&cinfo, infile);
+
+    (void)jpeg_read_header(&cinfo, TRUE);
+    (void)jpeg_start_decompress(&cinfo);
+
+    texture->width = cinfo.output_width;
+    texture->height = cinfo.output_height;
+    texture->components = cinfo.output_components;
+
+    row_stride = texture->width * texture->components;
+    buffer = (JSAMPARRAY)malloc(sizeof(JSAMPROW) * buffer_height);
+    buffer[0] = (JSAMPROW)malloc(sizeof(JSAMPLE) * row_stride);
+
+    texture->pixels = malloc(sizeof(unsigned char) * (texture->width * texture->height * texture->components));
+    long counter = 0;
+    while (cinfo.output_scanline < cinfo.output_height)
+    {
+        (void)jpeg_read_scanlines(&cinfo, buffer, 1);
+        memcpy(texture->pixels + counter, buffer[0], row_stride);
+        counter += row_stride;
+    }
+
+    (void)jpeg_finish_decompress(&cinfo);
+    jpeg_destroy_decompress(&cinfo);
+    fclose(infile);
+    free(buffer);
+    printf("Successfully loaded texture %s\n", filename);
+}
+
 void UnloadData()
 {
+    // Free up textures in memory
+    free(textures);
+    textures = NULL;
+    numTextures = 0;
+    // Free up lines and sectors in memory
     for (int a = 0; a < numSectors; a++)
     {
         free(sectors[a].lineDef);
