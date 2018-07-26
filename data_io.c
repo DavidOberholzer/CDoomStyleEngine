@@ -30,15 +30,17 @@ void my_error_exit(j_common_ptr cinfo)
     longjmp(myerr->setjmp_buffer, 1);
 }
 
-void LoadMapFile()
+void LoadMapFile(char *filename)
 {
-    FILE *data = fopen("maps/theoverlook.txt", "rt");
+    char dir[256] = "maps/";
+    strcat(dir, filename);
+    FILE *data = fopen(dir, "rt");
     if (!data)
     {
         perror("Map did not load!\n");
         exit(1);
     }
-    char Buf[256], word[256], *ptr;
+    char Buf[256], word[256], name[64], *ptr;
     struct line *lines = NULL, ln;
     struct xy position = {0, 0};
     int n, lineCount = 0, sector;
@@ -52,8 +54,9 @@ void LoadMapFile()
             {
             // Load lines
             case 'l':
-                sscanf(ptr += n, "%f%f%f%f%1s%n", &ln.x1, &ln.y1, &ln.x2, &ln.y2, word, &n);
+                sscanf(ptr += n, "%f%f%f%f%1s%1s%n", &ln.x1, &ln.y1, &ln.x2, &ln.y2, word, name, &n);
                 ln.adjacent = word[0] == 'x' ? -1 : atoi(word);
+                ln.texture = name[0] == 'x' ? -1 : atoi(name);
                 lines = realloc(lines, ++lineCount * sizeof(*lines));
                 lines[lineCount - 1] = ln;
                 break;
@@ -85,6 +88,10 @@ void LoadMapFile()
                                          angle,
                                          sector};
                 break;
+            // Load in texture
+            case 't':
+                sscanf(ptr += n, "%64s%n", name, &n);
+                LoadTexture(name);
             }
         }
     }
@@ -92,6 +99,8 @@ void LoadMapFile()
 
 void LoadTexture(char *filename)
 {
+    char dir[256] = "textures/";
+    strcat(dir, filename);
     textures = realloc(textures, ++numTextures * sizeof(*textures));
     struct texture *texture = &textures[numTextures - 1];
     struct jpeg_decompress_struct cinfo;
@@ -101,7 +110,7 @@ void LoadTexture(char *filename)
     int buffer_height = 1;
     int row_stride;
 
-    if ((infile = fopen(filename, "rb")) == NULL)
+    if ((infile = fopen(dir, "rb")) == NULL)
     {
         printf("Can't open %s\n", filename);
         exit(1);

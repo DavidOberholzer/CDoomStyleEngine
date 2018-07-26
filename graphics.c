@@ -48,11 +48,35 @@ void ClearFrame()
 	SDL_RenderClear(renderer);
 }
 
-void RenderLine(int x, int y1, int y2, int R, int G, int B, float distance, int roof, int ground)
+void RenderLine(int x, int y1, int y2, int R, int G, int B, float distance, float t, int roof, int ground, int textureIndex)
 {
-	float light_level = roof == 0 && ground == 0 ? distance < 4 ? 1 : distance > 20 ? 0.2 : 4 / distance : 0.4;
-	SDL_SetRenderDrawColor(renderer, R * light_level, G * light_level, B * light_level, 0x00);
-	SDL_RenderDrawLine(renderer, x, y1, x, y2);
+	float light_level = 0.4;
+	if (roof == 1 || ground == 1)
+	{
+		SDL_SetRenderDrawColor(renderer, R * light_level, G * light_level, B * light_level, 0x00);
+		SDL_RenderDrawLine(renderer, x, y1, x, y2);
+	}
+	else
+	{
+		light_level = distance < 4 ? 1 : distance > 20 ? 0.2 : 4 / distance;
+		if (t == -1 || textureIndex == -1)
+		{
+			SDL_SetRenderDrawColor(renderer, R * light_level, G * light_level, B * light_level, 0x00);
+			SDL_RenderDrawLine(renderer, x, y1, x, y2);
+		}
+		else
+		{
+			struct texture *texture = &textures[textureIndex - 1];
+			float width = t * (texture->width - 1);
+			for (int y = y1; y <= y2; y++)
+			{
+				float dy = (y - y1) / (float)(y2 - y1);
+				int index = width * texture->components + (dy * texture->height - 1) * texture->width * texture->components;
+				SDL_SetRenderDrawColor(renderer, texture->pixels[index], texture->pixels[index + 1], texture->pixels[index + 2], 0x00);
+				SDL_RenderDrawPoint(renderer, x, y);
+			}
+		}
+	}
 }
 
 void PresentFrame()
@@ -69,7 +93,8 @@ void DrawTexture(int index)
 	int width = 0;
 	for (int i = 0; i < length; i += texture->components)
 	{
-		if (width == 400) {
+		if (width == 400)
+		{
 			width = 0;
 		}
 		width++;

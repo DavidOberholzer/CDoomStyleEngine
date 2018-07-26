@@ -11,7 +11,7 @@ extern struct sector *sectors;
 extern int numSectors;
 extern struct player player;
 
-void LoadMapFile();
+void LoadMapFile(char *);
 void LoadTexture(char *);
 void UnloadData();
 

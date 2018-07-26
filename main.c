@@ -6,10 +6,8 @@
 
 int main()
 {
-    LoadMapFile();
+    LoadMapFile("testwall.txt");
     InitGraphics();
-    LoadTexture("textures/WallWood1.jpeg");
-    // DrawTexture(0);
     GameLoop();
     TearDownGraphics();
     UnloadData();

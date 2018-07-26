@@ -93,8 +93,8 @@ static void RenderWalls()
 						float dy = *(ptr + 1) * (1 - t) + *(ptr + 3) * t;
 						float distance = dx * dx + dy * dy;
 						// Draw roofs and floors.
-						RenderLine(x, yTopLimit[x], yt, 0x79 * sctr->lightlevel, 0x91 * sctr->lightlevel, 0xa9 * sctr->lightlevel, distance, 1, 0);
-						RenderLine(x, yb, yBottomLimit[x], 0x9a * sctr->lightlevel, 0x79 * sctr->lightlevel, 0xa9 * sctr->lightlevel, distance, 0, 1);
+						RenderLine(x, yTopLimit[x], yt, 0x79 * sctr->lightlevel, 0x91 * sctr->lightlevel, 0xa9 * sctr->lightlevel, distance, -1, 1, 0, -1);
+						RenderLine(x, yb, yBottomLimit[x], 0x9a * sctr->lightlevel, 0x79 * sctr->lightlevel, 0xa9 * sctr->lightlevel, distance, -1, 0, 1, -1);
 
 						if (sctr->lineDef[i].adjacent > -1)
 						{
@@ -102,7 +102,7 @@ static void RenderWalls()
 							{
 								// Create a floor wall for the change in height.
 								int stepY = Clamp(yBottomLimit[x], yTopLimit[x], stepy1 * (1 - t) + stepy2 * t + 0.5); // +0.5 to remove jaggies.
-								RenderLine(x, stepY, yb, 0x37 * sctr->lightlevel, 0xcd * sctr->lightlevel, 0xc1 * sctr->lightlevel, distance, 0, 0);
+								RenderLine(x, stepY, yb, 0x37 * sctr->lightlevel, 0xcd * sctr->lightlevel, 0xc1 * sctr->lightlevel, distance, -1, 0, 0, -1);
 								yBottomLimit[x] = stepY;
 							}
 							else
@@ -114,7 +114,7 @@ static void RenderWalls()
 							{
 								// Create a ceiling for the change in height.
 								int ceilY = Clamp(yBottomLimit[x], yTopLimit[x], ceily1 * (1 - t) + ceily2 * t + 0.5); // +0.5 to remove jaggies.
-								RenderLine(x, yt, ceilY, 0xa7 * sctr->lightlevel, 0x37 * sctr->lightlevel, 0xcd * sctr->lightlevel, distance, 0, 0);
+								RenderLine(x, yt, ceilY, 0xa7 * sctr->lightlevel, 0x37 * sctr->lightlevel, 0xcd * sctr->lightlevel, distance, -1, 0, 0, -1);
 								yTopLimit[x] = ceilY;
 							}
 							else
@@ -125,7 +125,7 @@ static void RenderWalls()
 						else
 						{
 							// Draw a normal wall.
-							RenderLine(x, yt, yb, 0xcc * sctr->lightlevel, 0xc5 * sctr->lightlevel, 0xce * sctr->lightlevel, distance, 0, 0);
+							RenderLine(x, yt, yb, 0xcc * sctr->lightlevel, 0xc5 * sctr->lightlevel, 0xce * sctr->lightlevel, distance, t, 0, 0, sctr->lineDef[i].texture);
 						}
 					}
 					// Load in next in next portal if adjacent sector found.
@@ -246,8 +246,7 @@ void GameLoop()
 	while (!close)
 	{
 		ClearFrame();
-		DrawTexture(0);
-		// RenderWalls();
+		RenderWalls();
 		PresentFrame();
 		SDL_Event event;
 		while (SDL_PollEvent(&event))
