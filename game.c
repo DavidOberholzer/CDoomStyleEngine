@@ -39,9 +39,6 @@ static void RenderWalls()
 		current += 1;
 		struct portal *currentPortal = queue + current;
 		struct sector *sctr = &sectors[currentPortal->sectorNo - 1];
-		// if (renderedSectors[currentPortal->sectorNo] & 0x21)
-		//     continue;
-		// ++renderedSectors[currentPortal->sectorNo];
 		for (int i = 0; i < sctr->lineNum; i++)
 		{
 			// First Vector rotation of the lines around the player.
@@ -51,22 +48,18 @@ static void RenderWalls()
 			rotx2 = (sctr->lineDef[i].x2 - player.position.x) * cos(player.angle) + (sctr->lineDef[i].y2 - player.position.y) * sin(player.angle);
 			roty2 = (sctr->lineDef[i].y2 - player.position.y) * cos(player.angle) - (sctr->lineDef[i].x2 - player.position.x) * sin(player.angle);
 
-			float points[4] = {
-				sctr->lineDef[i].x1 - player.position.x,
-				sctr->lineDef[i].y1 - player.position.y,
-				sctr->lineDef[i].x2 - player.position.x,
-				sctr->lineDef[i].y2 - player.position.y};
-
 			// Clip line to the view cone.
 			float *ptr;
 			ptr = ClipViewCone(rotx1, roty1, rotx2, roty2, VIEWANGLE);
 
 			if (*ptr > 0 && *(ptr + 2) > 0)
 			{
-				int s1, s2, zt1, zb1, zt2, zb2, stepy1, stepy2, ceily1, ceily2;
+				int s1, s2, us1, us2, zt1, zb1, zt2, zb2, stepy1, stepy2, ceily1, ceily2;
 				// Wall X transformation
 				s1 = (500 * *(ptr + 1) / *ptr) + WIDTH / 2;
 				s2 = (500 * *(ptr + 3) / *(ptr + 2)) + WIDTH / 2;
+				us1 = (500 * roty1 / rotx1) + WIDTH / 2;
+				us2 = (500 * roty2 / rotx2) + WIDTH / 2;
 				zt1 = (-(sctr->ceilingheight - ph) / *ptr) + HEIGHT / 2;
 				zb1 = ((ph - sctr->floorheight) / *ptr) + HEIGHT / 2;
 				zt2 = (-(sctr->ceilingheight - ph) / *(ptr + 2)) + HEIGHT / 2;
@@ -87,14 +80,17 @@ static void RenderWalls()
 					for (int x = x1; x <= x2; x++)
 					{
 						float t = (x - s1) / (float)(s2 - s1);
-						int yt = Clamp(yBottomLimit[x], yTopLimit[x], zt1 * (1 - t) + zt2 * t + 0.5); // +0.5 to remove jaggies.
-						int yb = Clamp(yBottomLimit[x], yTopLimit[x], zb1 * (1 - t) + zb2 * t + 0.5); // +0.5 to remove jaggies.
+						float t2 = (x - us1) / (float)(us2 - us1);
+						int yTop = zt1 * (1 - t) + zt2 * t + 0.5; // +0.5 to remove jaggies.
+						int yBottom = zb1 * (1 - t) + zb2 * t + 0.5; // +0.5 to remove jaggies.
+						int yt = Clamp(yBottomLimit[x], yTopLimit[x], yTop);	
+						int yb = Clamp(yBottomLimit[x], yTopLimit[x], yBottom);
 						float dx = *ptr * (1 - t) + *(ptr + 2) * t;
 						float dy = *(ptr + 1) * (1 - t) + *(ptr + 3) * t;
 						float distance = dx * dx + dy * dy;
-						// Draw roofs and floors.
-						RenderLine(x, yTopLimit[x], yt, 0x79 * sctr->lightlevel, 0x91 * sctr->lightlevel, 0xa9 * sctr->lightlevel, distance, -1, 1, 0, -1);
-						RenderLine(x, yb, yBottomLimit[x], 0x9a * sctr->lightlevel, 0x79 * sctr->lightlevel, 0xa9 * sctr->lightlevel, distance, -1, 0, 1, -1);
+						// // Draw roofs and floors.
+						// RenderLine(x, yTopLimit[x], yt, yTop, yBottom, 0x79 * sctr->lightlevel, 0x91 * sctr->lightlevel, 0xa9 * sctr->lightlevel, distance, -1, 1, 0, -1);
+						// RenderLine(x, yb, yBottomLimit[x], yTop, yBottom, 0x9a * sctr->lightlevel, 0x79 * sctr->lightlevel, 0xa9 * sctr->lightlevel, distance, -1, 0, 1, -1);
 
 						if (sctr->lineDef[i].adjacent > -1)
 						{
@@ -102,7 +98,7 @@ static void RenderWalls()
 							{
 								// Create a floor wall for the change in height.
 								int stepY = Clamp(yBottomLimit[x], yTopLimit[x], stepy1 * (1 - t) + stepy2 * t + 0.5); // +0.5 to remove jaggies.
-								RenderLine(x, stepY, yb, 0x37 * sctr->lightlevel, 0xcd * sctr->lightlevel, 0xc1 * sctr->lightlevel, distance, -1, 0, 0, -1);
+								RenderLine(x, stepY, yb, yTop, yBottom, 0x37 * sctr->lightlevel, 0xcd * sctr->lightlevel, 0xc1 * sctr->lightlevel, distance, -1, 0, 0, -1);
 								yBottomLimit[x] = stepY;
 							}
 							else
@@ -114,7 +110,7 @@ static void RenderWalls()
 							{
 								// Create a ceiling for the change in height.
 								int ceilY = Clamp(yBottomLimit[x], yTopLimit[x], ceily1 * (1 - t) + ceily2 * t + 0.5); // +0.5 to remove jaggies.
-								RenderLine(x, yt, ceilY, 0xa7 * sctr->lightlevel, 0x37 * sctr->lightlevel, 0xcd * sctr->lightlevel, distance, -1, 0, 0, -1);
+								RenderLine(x, yt, ceilY, yTop, yBottom, 0xa7 * sctr->lightlevel, 0x37 * sctr->lightlevel, 0xcd * sctr->lightlevel, distance, -1, 0, 0, -1);
 								yTopLimit[x] = ceilY;
 							}
 							else
@@ -125,7 +121,7 @@ static void RenderWalls()
 						else
 						{
 							// Draw a normal wall.
-							RenderLine(x, yt, yb, 0xcc * sctr->lightlevel, 0xc5 * sctr->lightlevel, 0xce * sctr->lightlevel, distance, t, 0, 0, sctr->lineDef[i].texture);
+							RenderLine(x, yt, yb, yTop, yBottom, 0xcc * sctr->lightlevel, 0xc5 * sctr->lightlevel, 0xce * sctr->lightlevel, distance, t, 0, 0, sctr->lineDef[i].texture);
 						}
 					}
 					// Load in next in next portal if adjacent sector found.

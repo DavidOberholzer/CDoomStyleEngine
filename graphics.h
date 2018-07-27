@@ -15,7 +15,7 @@ extern SDL_Texture *texture;
 
 void InitGraphics();
 void ClearFrame();
-void RenderLine(int, int, int, int, int, int, float, float, int, int, int);
+void RenderLine(int, int, int, int, int, int, int, int, float, float, int, int, int);
 void PresentFrame();
 void DrawTexture(int);
 void TearDownGraphics();
