@@ -17,7 +17,6 @@ void InitGraphics();
 void ClearFrame();
 void RenderLine(int, int, int, int, int, int, int, int, float, int, int, int, int);
 void PresentFrame();
-void DrawTexture(int);
 void TearDownGraphics();
 
 #endif
