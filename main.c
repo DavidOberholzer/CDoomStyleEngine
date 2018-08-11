@@ -6,7 +6,7 @@
 
 int main()
 {
-    LoadMapFile("testwall.txt");
+    LoadMapFile("theoverlook.txt");
     InitGraphics();
     GameLoop();
     TearDownGraphics();

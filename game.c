@@ -54,12 +54,17 @@ static void RenderWalls()
 
 			if (*ptr > 0 && *(ptr + 2) > 0)
 			{
-				int s1, s2, us1, us2, zt1, zb1, zt2, zb2, stepy1, stepy2, ceily1, ceily2;
+				int s1, s2, us1, us2, tex1, tex2, zt1, zb1, zt2, zb2, stepy1, stepy2, ceily1, ceily2;
+				float z1, z2;
 				// Wall X transformation
 				s1 = (500 * *(ptr + 1) / *ptr) + WIDTH / 2;
 				s2 = (500 * *(ptr + 3) / *(ptr + 2)) + WIDTH / 2;
 				us1 = (500 * roty1 / rotx1) + WIDTH / 2;
 				us2 = (500 * roty2 / rotx2) + WIDTH / 2;
+				z1 = 1 / rotx1;
+				z2 = 1 / rotx2;
+				tex1 = 0 * z1;
+				tex2 = 400 * z2;
 				zt1 = (-(sctr->ceilingheight - ph) / *ptr) + HEIGHT / 2;
 				zb1 = ((ph - sctr->floorheight) / *ptr) + HEIGHT / 2;
 				zt2 = (-(sctr->ceilingheight - ph) / *(ptr + 2)) + HEIGHT / 2;
@@ -81,16 +86,19 @@ static void RenderWalls()
 					{
 						float t = (x - s1) / (float)(s2 - s1);
 						float t2 = (x - us1) / (float)(us2 - us1);
-						int yTop = zt1 * (1 - t) + zt2 * t + 0.5; // +0.5 to remove jaggies.
+						float z = z1 * (1 - t2) + z2 * t2;
+						float tex = tex1 * (1 - t2) + tex2 * t2;
+						int u = tex / z;
+						int yTop = zt1 * (1 - t) + zt2 * t + 0.5;	// +0.5 to remove jaggies.
 						int yBottom = zb1 * (1 - t) + zb2 * t + 0.5; // +0.5 to remove jaggies.
-						int yt = Clamp(yBottomLimit[x], yTopLimit[x], yTop);	
+						int yt = Clamp(yBottomLimit[x], yTopLimit[x], yTop);
 						int yb = Clamp(yBottomLimit[x], yTopLimit[x], yBottom);
 						float dx = *ptr * (1 - t) + *(ptr + 2) * t;
 						float dy = *(ptr + 1) * (1 - t) + *(ptr + 3) * t;
 						float distance = dx * dx + dy * dy;
 						// // Draw roofs and floors.
-						// RenderLine(x, yTopLimit[x], yt, yTop, yBottom, 0x79 * sctr->lightlevel, 0x91 * sctr->lightlevel, 0xa9 * sctr->lightlevel, distance, -1, 1, 0, -1);
-						// RenderLine(x, yb, yBottomLimit[x], yTop, yBottom, 0x9a * sctr->lightlevel, 0x79 * sctr->lightlevel, 0xa9 * sctr->lightlevel, distance, -1, 0, 1, -1);
+						RenderLine(x, yTopLimit[x], yt, yTop, yBottom, 0x79 * sctr->lightlevel, 0x91 * sctr->lightlevel, 0xa9 * sctr->lightlevel, distance, -1, 1, 0, -1);
+						RenderLine(x, yb, yBottomLimit[x], yTop, yBottom, 0x9a * sctr->lightlevel, 0x79 * sctr->lightlevel, 0xa9 * sctr->lightlevel, distance, -1, 0, 1, -1);
 
 						if (sctr->lineDef[i].adjacent > -1)
 						{
@@ -121,7 +129,7 @@ static void RenderWalls()
 						else
 						{
 							// Draw a normal wall.
-							RenderLine(x, yt, yb, yTop, yBottom, 0xcc * sctr->lightlevel, 0xc5 * sctr->lightlevel, 0xce * sctr->lightlevel, distance, t, 0, 0, sctr->lineDef[i].texture);
+							RenderLine(x, yt, yb, yTop, yBottom, 0xcc * sctr->lightlevel, 0xc5 * sctr->lightlevel, 0xce * sctr->lightlevel, distance, u, 0, 0, sctr->lineDef[i].texture);
 						}
 					}
 					// Load in next in next portal if adjacent sector found.

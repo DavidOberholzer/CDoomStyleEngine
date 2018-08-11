@@ -1,48 +1,48 @@
-line 0 15 0 10 x
-line 0 10 2.5 10 x
-line 2.5 10 5 10 2
-line 5 10 5 12.5 x
-line 5 12.5 5 15 8
-line 5 15 0 15 x
+line 0 15 0 10 x 1
+line 0 10 2.5 10 x 1
+line 2.5 10 5 10 2 x
+line 5 10 5 12.5 x 1
+line 5 12.5 5 15 8 1
+line 5 15 0 15 x 1
 
-line 5 10 2.5 10 1
-line 2.5 10 2.5 8.5 x
-line 2.5 8.5 5 9.5 3
-line 5 9.5 5 10 x
+line 5 10 2.5 10 1 x x
+line 2.5 10 2.5 8.5 x 1
+line 2.5 8.5 5 9.5 3 x
+line 5 9.5 5 10 x x
 
-line 5 9.5 2.5 8.5 2
-line 2.5 8.5 5 6.5 x
-line 5 6.5 6.5 9.5 4
-line 6.5 9.5 5 9.5 x
+line 5 9.5 2.5 8.5 2 x
+line 2.5 8.5 5 6.5 x x
+line 5 6.5 6.5 9.5 4 x
+line 6.5 9.5 5 9.5 x x
 
-line 6.5 9.5 5 6.5 3
-line 5 6.5 7.5 6.5 x
-line 7.5 6.5 7.5 9.5 5
-line 7.5 9.5 6.5 9.5 x
+line 6.5 9.5 5 6.5 3 x
+line 5 6.5 7.5 6.5 x x
+line 7.5 6.5 7.5 9.5 5 x
+line 7.5 9.5 6.5 9.5 x x
 
-line 7.5 9.5 7.5 6.5 4
-line 7.5 6.5 10 6.5 x
-line 10 6.5 10 9.5 6
-line 10 9.5 7.5 9.5 x
+line 7.5 9.5 7.5 6.5 4 x
+line 7.5 6.5 10 6.5 x x
+line 10 6.5 10 9.5 6 x
+line 10 9.5 7.5 9.5 x x
 
-line 10 9.5 10 6.5 5
-line 10 6.5 10 5.5 x
-line 10 5.5 12.5 5.5 x
-line 12.5 5.5 12.5 10 x
-line 12.5 10 11 10 7
-line 11 10 10 10 x
-line 10 10 10 9.5 x
+line 10 9.5 10 6.5 5 x
+line 10 6.5 10 5.5 x x
+line 10 5.5 12.5 5.5 x x
+line 12.5 5.5 12.5 10 x x
+line 12.5 10 11 10 7 x
+line 11 10 10 10 x x
+line 10 10 10 9.5 x x
 
-line 11 10 12.5 10 6
-line 12.5 10 12.5 12.5 x
-line 12.5 12.5 11 12.5 8
-line 11 12.5 11 10 x
+line 11 10 12.5 10 6 x
+line 12.5 10 12.5 12.5 x x
+line 12.5 12.5 11 12.5 8 x
+line 11 12.5 11 10 x x
 
-line 11 12.5 12.5 12.5 7
-line 12.5 12.5 12.5 15 x
-line 12.5 15 5 15 x
-line 5 15 5 12.5 1
-line 5 12.5 11 12.5 x
+line 11 12.5 12.5 12.5 7 x
+line 12.5 12.5 12.5 15 x x
+line 12.5 15 5 15 x x
+line 5 15 5 12.5 1 x
+line 5 12.5 11 12.5 x x
 
 sector 0 300 0.9    1 2 3 4 5 6 
 sector 20 200 0.8   7 8 9 10
@@ -54,3 +54,5 @@ sector 80 175 0.6   30 31 32 33
 sector 100 400 0.8  34 35 36 37 38
 
 player 2.5 12.5 0 1
+
+texture WallWood1.jpeg
