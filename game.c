@@ -97,8 +97,8 @@ static void RenderWalls()
 						float dy = *(ptr + 1) * (1 - t) + *(ptr + 3) * t;
 						float distance = dx * dx + dy * dy;
 						// // Draw roofs and floors.
-						RenderLine(x, yTopLimit[x], yt, yTop, yBottom, 0x78 * sctr->lightlevel, 0x78 * sctr->lightlevel, 0x78 * sctr->lightlevel, distance, -1, 1, 0, -1);
-						RenderLine(x, yb, yBottomLimit[x], yTop, yBottom, 0x79 * sctr->lightlevel, 0x79 * sctr->lightlevel, 0x79 * sctr->lightlevel, distance, -1, 0, 1, -1);
+						RenderLine(x, yTopLimit[x], yt, yTop, yBottom, 0x78 * sctr->lightlevel, 0x78 * sctr->lightlevel, 0x78 * sctr->lightlevel, distance, -1, 1, 0, -1, current);
+						RenderLine(x, yb, yBottomLimit[x], yTop, yBottom, 0x79 * sctr->lightlevel, 0x79 * sctr->lightlevel, 0x79 * sctr->lightlevel, distance, -1, 0, 1, -1, current);
 
 						if (sctr->lineDef[i].adjacent > -1)
 						{
@@ -107,7 +107,7 @@ static void RenderWalls()
 								// Create a floor wall for the change in height.
 								int realStepY = stepy1 * (1 - t) + stepy2 * t + 0.5;
 								int stepY = Clamp(yBottomLimit[x], yTopLimit[x], realStepY); // +0.5 to remove jaggies.
-								RenderLine(x, stepY, yb, realStepY, yBottom, 0x37 * sctr->lightlevel, 0xcd * sctr->lightlevel, 0xc1 * sctr->lightlevel, distance, u, 0, 0, sctr->lineDef[i].floorTexture);
+								RenderLine(x, stepY, yb, realStepY, yBottom, 0x37, 0xcd, 0xc1, distance, u, 0, 0, sctr->lineDef[i].floorTexture, current);
 								yBottomLimit[x] = stepY;
 							}
 							else
@@ -120,7 +120,7 @@ static void RenderWalls()
 								// Create a ceiling for the change in height.
 								int realCeilY = ceily1 * (1 - t) + ceily2 * t + 0.5;
 								int ceilY = Clamp(yBottomLimit[x], yTopLimit[x], realCeilY); // +0.5 to remove jaggies.
-								RenderLine(x, yt, ceilY, yTop, realCeilY, 0xa7 * sctr->lightlevel, 0x37 * sctr->lightlevel, 0xcd * sctr->lightlevel, distance, u, 0, 0, sctr->lineDef[i].ceilingTexture);
+								RenderLine(x, yt, ceilY, yTop, realCeilY, 0xa7, 0x37, 0xcd, distance, u, 0, 0, sctr->lineDef[i].ceilingTexture, current);
 								yTopLimit[x] = ceilY;
 							}
 							else
@@ -131,7 +131,7 @@ static void RenderWalls()
 						else
 						{
 							// Draw a normal wall.
-							RenderLine(x, yt, yb, yTop, yBottom, 0xcc * sctr->lightlevel, 0xc5 * sctr->lightlevel, 0xce * sctr->lightlevel, distance, u, 0, 0, sctr->lineDef[i].wallTexture);
+							RenderLine(x, yt, yb, yTop, yBottom, 0xcc, 0xc5, 0xce, distance, u, 0, 0, sctr->lineDef[i].wallTexture, current);
 						}
 					}
 					// Load in next in next portal if adjacent sector found.

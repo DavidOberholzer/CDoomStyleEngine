@@ -7,6 +7,7 @@
 int main()
 {
     LoadMapFile("theoverlook.txt");
+    LoadScreenLightMap();
     InitGraphics();
     GameLoop();
     TearDownGraphics();

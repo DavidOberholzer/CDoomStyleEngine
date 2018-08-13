@@ -48,13 +48,29 @@ void ClearFrame()
 	SDL_RenderClear(renderer);
 }
 
-void RenderLine(int x, int y1, int y2, int yt, int yb, int R, int G, int B, float distance, int u, int roof, int ground, int textureIndex)
+void RenderLine(int x, int y1, int y2, int yt, int yb, int R, int G, int B, float distance, int u, int roof, int ground, int textureIndex, int currentSector)
 {
 	float light_level = 0.4;
 	if (roof == 1 || ground == 1)
 	{
-		SDL_SetRenderDrawColor(renderer, R * light_level, G * light_level, B * light_level, 0x00);
-		SDL_RenderDrawLine(renderer, x, y1, x, y2);
+		if (currentSector > 2 || roof == 1)
+		{
+			SDL_SetRenderDrawColor(renderer, R * light_level, G * light_level, B * light_level, 0x00);
+			SDL_RenderDrawLine(renderer, x, y1, x, y2);
+		}
+		else
+		{
+			for (int y = y1; y <= y2; y++)
+			{
+				float screenLightLevel = screenLightMap[y] * light_level;
+				screenLightLevel = screenLightLevel > 0.4 ? screenLightLevel : 0.4;
+				if (y == 1) {
+					printf("%0.2f\n", screenLightLevel);
+				}
+				SDL_SetRenderDrawColor(renderer, screenLightLevel * R, screenLightLevel * G, screenLightLevel * B, 0x00);
+				SDL_RenderDrawPoint(renderer, x, y);
+			}
+		}
 	}
 	else
 	{

@@ -7,12 +7,14 @@
 // Local Includes
 #include "data_io.h"
 #include "structures.h"
+#include "graphics.h"
 
 struct texture *textures = NULL;
 int numTextures = 0;
 struct sector *sectors = NULL;
 int numSectors = 0;
 struct player player;
+float screenLightMap[HEIGHT];
 
 // Custom Error Handler
 struct my_error_mgr
@@ -156,6 +158,16 @@ void LoadTexture(char *filename)
     fclose(infile);
     free(buffer);
     printf("Successfully loaded texture %s\n", filename);
+}
+
+void LoadScreenLightMap()
+{
+    for (int y = 0; y < HEIGHT; y++)
+    {
+        float t = ((y < HEIGHT / 2) ? ((HEIGHT / 2) - y) : (y - HEIGHT / 2)) / (float) (HEIGHT / 2);
+        float lightlevel = t * 2.5;
+        screenLightMap[y] = lightlevel;
+    }
 }
 
 void UnloadData()
