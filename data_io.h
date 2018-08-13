@@ -5,11 +5,16 @@
 
 #include "structures.h"
 
+extern struct texture *textures;
+extern int numTextures;
 extern struct sector *sectors;
 extern int numSectors;
 extern struct player player;
+extern float screenLightMap[];
 
-void LoadMapFile();
+void LoadMapFile(char *);
+void LoadTexture(char *);
+void LoadScreenLightMap();
 void UnloadData();
 
 #endif

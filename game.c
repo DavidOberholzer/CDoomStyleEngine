@@ -3,12 +3,15 @@
 #include "graphics.h"
 #include "worldmath.h"
 
+#define MOVESPEED 0.04
+
 static float playerView = 40;
 static float viewMovement = 0;
 static int viewDown = 1;
 static int playerHeight = 0;
 static int fallHeight = 0;
 static int fallingVelocity = 0;
+int showTextures = 1;
 
 static void RenderWalls()
 {
@@ -39,9 +42,6 @@ static void RenderWalls()
 		current += 1;
 		struct portal *currentPortal = queue + current;
 		struct sector *sctr = &sectors[currentPortal->sectorNo - 1];
-		// if (renderedSectors[currentPortal->sectorNo] & 0x21)
-		//     continue;
-		// ++renderedSectors[currentPortal->sectorNo];
 		for (int i = 0; i < sctr->lineNum; i++)
 		{
 			// First Vector rotation of the lines around the player.
@@ -51,22 +51,23 @@ static void RenderWalls()
 			rotx2 = (sctr->lineDef[i].x2 - player.position.x) * cos(player.angle) + (sctr->lineDef[i].y2 - player.position.y) * sin(player.angle);
 			roty2 = (sctr->lineDef[i].y2 - player.position.y) * cos(player.angle) - (sctr->lineDef[i].x2 - player.position.x) * sin(player.angle);
 
-			float points[4] = {
-				sctr->lineDef[i].x1 - player.position.x,
-				sctr->lineDef[i].y1 - player.position.y,
-				sctr->lineDef[i].x2 - player.position.x,
-				sctr->lineDef[i].y2 - player.position.y};
-
 			// Clip line to the view cone.
 			float *ptr;
 			ptr = ClipViewCone(rotx1, roty1, rotx2, roty2, VIEWANGLE);
 
 			if (*ptr > 0 && *(ptr + 2) > 0)
 			{
-				int s1, s2, zt1, zb1, zt2, zb2, stepy1, stepy2, ceily1, ceily2;
+				int s1, s2, us1, us2, tex1, tex2, zt1, zb1, zt2, zb2, stepy1, stepy2, ceily1, ceily2;
+				float z1, z2;
 				// Wall X transformation
 				s1 = (500 * *(ptr + 1) / *ptr) + WIDTH / 2;
 				s2 = (500 * *(ptr + 3) / *(ptr + 2)) + WIDTH / 2;
+				us1 = (500 * roty1 / rotx1) + WIDTH / 2;
+				us2 = (500 * roty2 / rotx2) + WIDTH / 2;
+				z1 = 1 / rotx1;
+				z2 = 1 / rotx2;
+				tex1 = 0 * z1;
+				tex2 = 400 * z2;
 				zt1 = (-(sctr->ceilingheight - ph) / *ptr) + HEIGHT / 2;
 				zb1 = ((ph - sctr->floorheight) / *ptr) + HEIGHT / 2;
 				zt2 = (-(sctr->ceilingheight - ph) / *(ptr + 2)) + HEIGHT / 2;
@@ -87,22 +88,29 @@ static void RenderWalls()
 					for (int x = x1; x <= x2; x++)
 					{
 						float t = (x - s1) / (float)(s2 - s1);
-						int yt = Clamp(yBottomLimit[x], yTopLimit[x], zt1 * (1 - t) + zt2 * t + 0.5); // +0.5 to remove jaggies.
-						int yb = Clamp(yBottomLimit[x], yTopLimit[x], zb1 * (1 - t) + zb2 * t + 0.5); // +0.5 to remove jaggies.
+						float t2 = (x - us1) / (float)(us2 - us1);
+						float z = z1 * (1 - t2) + z2 * t2;
+						float tex = tex1 * (1 - t2) + tex2 * t2;
+						int u = tex / z;
+						int yTop = zt1 * (1 - t) + zt2 * t + 0.5;	// +0.5 to remove jaggies.
+						int yBottom = zb1 * (1 - t) + zb2 * t + 0.5; // +0.5 to remove jaggies.
+						int yt = Clamp(yBottomLimit[x], yTopLimit[x], yTop);
+						int yb = Clamp(yBottomLimit[x], yTopLimit[x], yBottom);
 						float dx = *ptr * (1 - t) + *(ptr + 2) * t;
 						float dy = *(ptr + 1) * (1 - t) + *(ptr + 3) * t;
 						float distance = dx * dx + dy * dy;
-						// Draw roofs and floors.
-						RenderLine(x, yTopLimit[x], yt, 0x79 * sctr->lightlevel, 0x91 * sctr->lightlevel, 0xa9 * sctr->lightlevel, distance, 1, 0);
-						RenderLine(x, yb, yBottomLimit[x], 0x9a * sctr->lightlevel, 0x79 * sctr->lightlevel, 0xa9 * sctr->lightlevel, distance, 0, 1);
+						// // Draw roofs and floors.
+						RenderLine(x, yTopLimit[x], yt, yTop, yBottom, 0x78 * sctr->lightlevel, 0x78 * sctr->lightlevel, 0x78 * sctr->lightlevel, distance, -1, 1, 0, -1, current);
+						RenderLine(x, yb, yBottomLimit[x], yTop, yBottom, 0x79 * sctr->lightlevel, 0x79 * sctr->lightlevel, 0x79 * sctr->lightlevel, distance, -1, 0, 1, -1, current);
 
 						if (sctr->lineDef[i].adjacent > -1)
 						{
 							if (sectors[sctr->lineDef[i].adjacent - 1].floorheight > sctr->floorheight)
 							{
 								// Create a floor wall for the change in height.
-								int stepY = Clamp(yBottomLimit[x], yTopLimit[x], stepy1 * (1 - t) + stepy2 * t + 0.5); // +0.5 to remove jaggies.
-								RenderLine(x, stepY, yb, 0x37 * sctr->lightlevel, 0xcd * sctr->lightlevel, 0xc1 * sctr->lightlevel, distance, 0, 0);
+								int realStepY = stepy1 * (1 - t) + stepy2 * t + 0.5;
+								int stepY = Clamp(yBottomLimit[x], yTopLimit[x], realStepY); // +0.5 to remove jaggies.
+								RenderLine(x, stepY, yb, realStepY, yBottom, 0x37, 0xcd, 0xc1, distance, u, 0, 0, sctr->lineDef[i].floorTexture, current);
 								yBottomLimit[x] = stepY;
 							}
 							else
@@ -113,8 +121,9 @@ static void RenderWalls()
 							if (sectors[sctr->lineDef[i].adjacent - 1].ceilingheight < sctr->ceilingheight)
 							{
 								// Create a ceiling for the change in height.
-								int ceilY = Clamp(yBottomLimit[x], yTopLimit[x], ceily1 * (1 - t) + ceily2 * t + 0.5); // +0.5 to remove jaggies.
-								RenderLine(x, yt, ceilY, 0xa7 * sctr->lightlevel, 0x37 * sctr->lightlevel, 0xcd * sctr->lightlevel, distance, 0, 0);
+								int realCeilY = ceily1 * (1 - t) + ceily2 * t + 0.5;
+								int ceilY = Clamp(yBottomLimit[x], yTopLimit[x], realCeilY); // +0.5 to remove jaggies.
+								RenderLine(x, yt, ceilY, yTop, realCeilY, 0xa7, 0x37, 0xcd, distance, u, 0, 0, sctr->lineDef[i].ceilingTexture, current);
 								yTopLimit[x] = ceilY;
 							}
 							else
@@ -125,7 +134,7 @@ static void RenderWalls()
 						else
 						{
 							// Draw a normal wall.
-							RenderLine(x, yt, yb, 0xcc * sctr->lightlevel, 0xc5 * sctr->lightlevel, 0xce * sctr->lightlevel, distance, 0, 0);
+							RenderLine(x, yt, yb, yTop, yBottom, 0xcc, 0xc5, 0xce, distance, u, 0, 0, sctr->lineDef[i].wallTexture, current);
 						}
 					}
 					// Load in next in next portal if adjacent sector found.
@@ -278,6 +287,11 @@ void GameLoop()
 				case SDLK_e:
 					keysPressed[5] = event.type == SDL_KEYDOWN ? 1 : 0;
 					break;
+				case SDLK_t:
+					if (event.type == SDL_KEYDOWN) {
+						showTextures = showTextures ? 0 : 1;
+					}
+					break;
 				case SDLK_ESCAPE:
 					close = 1;
 					break;
@@ -306,8 +320,8 @@ void GameLoop()
 
 		HandleFalling();
 
-		player.angle -= keysPressed[4] ? 0.03f : 0;
-		player.angle += keysPressed[5] ? 0.03f : 0;
+		player.angle -= keysPressed[4] ? 0.04f : 0;
+		player.angle += keysPressed[5] ? 0.04f : 0;
 
 		SDL_Delay(10);
 	}

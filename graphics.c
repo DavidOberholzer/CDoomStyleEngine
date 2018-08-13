@@ -1,6 +1,9 @@
 #include <SDL2/SDL.h>
 
+#include "game.h"
 #include "graphics.h"
+#include "data_io.h"
+#include "structures.h"
 
 // SDL Window and Surface.
 SDL_Window *window = NULL;
@@ -46,11 +49,51 @@ void ClearFrame()
 	SDL_RenderClear(renderer);
 }
 
-void RenderLine(int x, int y1, int y2, int R, int G, int B, float distance, int roof, int ground)
+void RenderLine(int x, int y1, int y2, int yt, int yb, int R, int G, int B, float distance, int u, int roof, int ground, int textureIndex, int currentSector)
 {
-	float light_level = roof == 0 && ground == 0 ? distance < 4 ? 1 : distance > 20 ? 0.2 : 4 / distance : 0.4;
-	SDL_SetRenderDrawColor(renderer, R * light_level, G * light_level, B * light_level, 0x00);
-	SDL_RenderDrawLine(renderer, x, y1, x, y2);
+	float light_level = showTextures ? 0.4 : 1;
+	if (roof == 1 || ground == 1)
+	{
+		if (currentSector > 2 || roof == 1 || showTextures == 0)
+		{
+			SDL_SetRenderDrawColor(renderer, R * light_level, G * light_level, B * light_level, 0x00);
+			SDL_RenderDrawLine(renderer, x, y1, x, y2);
+		}
+		else
+		{
+			for (int y = y1; y <= y2; y++)
+			{
+				float screenLightLevel = screenLightMap[y] * light_level;
+				screenLightLevel = screenLightLevel > 0.4 ? screenLightLevel : 0.4;
+				SDL_SetRenderDrawColor(renderer, screenLightLevel * R, screenLightLevel * G, screenLightLevel * B, 0x00);
+				SDL_RenderDrawPoint(renderer, x, y);
+			}
+		}
+	}
+	else
+	{
+		light_level = showTextures ? (distance < 4 ? 1 : distance > 20 ? 0.2 : 4 / distance) : 1;
+		if ((u == -1 || textureIndex == -1) || showTextures != 1)
+		{
+			SDL_SetRenderDrawColor(renderer, R * light_level, G * light_level, B * light_level, 0x00);
+			SDL_RenderDrawLine(renderer, x, y1, x, y2);
+		}
+		else
+		{
+			struct texture *texture = &textures[textureIndex - 1];
+			for (int y = yt; y <= yb; y++)
+			{
+				if (y >= y1 && y <= y2)
+				{
+					float dy = (y - yb) / (float)(yt - yb);
+					int height = dy * (texture->height - 1);
+					int index = (u + height * texture->width) * texture->components;
+					SDL_SetRenderDrawColor(renderer, texture->pixels[index] * light_level, texture->pixels[index + 1] * light_level, texture->pixels[index + 2] * light_level, 0x00);
+					SDL_RenderDrawPoint(renderer, x, y);
+				}
+			}
+		}
+	}
 }
 
 void PresentFrame()
