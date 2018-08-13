@@ -13,7 +13,7 @@ struct line
 {
 	float x1, y1, x2, y2;
 	signed char adjacent;
-	signed char texture;
+	signed char wallTexture, ceilingTexture, floorTexture;
 };
 
 // Sectors

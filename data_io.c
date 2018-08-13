@@ -40,7 +40,7 @@ void LoadMapFile(char *filename)
         perror("Map did not load!\n");
         exit(1);
     }
-    char Buf[256], word[256], name[64], *ptr;
+    char Buf[256], word[256], tw[64], tc[64], tf[64], *ptr;
     struct line *lines = NULL, ln;
     struct xy position = {0, 0};
     int n, lineCount = 0, sector;
@@ -54,9 +54,11 @@ void LoadMapFile(char *filename)
             {
             // Load lines
             case 'l':
-                sscanf(ptr += n, "%f%f%f%f%1s%1s%n", &ln.x1, &ln.y1, &ln.x2, &ln.y2, word, name, &n);
+                sscanf(ptr += n, "%f%f%f%f%1s%1s%1s%1s%n", &ln.x1, &ln.y1, &ln.x2, &ln.y2, word, tw, tc, tf, &n);
                 ln.adjacent = word[0] == 'x' ? -1 : atoi(word);
-                ln.texture = name[0] == 'x' ? -1 : atoi(name);
+                ln.wallTexture = tw[0] == 'x' ? -1 : atoi(tw);
+                ln.ceilingTexture = tc[0] == 'x' ? -1 : atoi(tc);
+                ln.floorTexture = tf[0] == 'x' ? -1 : atoi(tf);
                 lines = realloc(lines, ++lineCount * sizeof(*lines));
                 lines[lineCount - 1] = ln;
                 break;
@@ -90,8 +92,8 @@ void LoadMapFile(char *filename)
                 break;
             // Load in texture
             case 't':
-                sscanf(ptr += n, "%64s%n", name, &n);
-                LoadTexture(name);
+                sscanf(ptr += n, "%64s%n", tw, &n);
+                LoadTexture(tw);
             }
         }
     }
