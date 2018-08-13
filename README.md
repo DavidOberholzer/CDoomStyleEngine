@@ -8,13 +8,13 @@ You can compile main.c yourself or just run the make command in linux `make comp
 
 ## Controls
 
-W - Forwards
-S - Backwards
-A - Strafe Left
-D - Strafe Right
-Q - Rotate Anti-clockwise
-E - Rotate Clockwise
-T - Toggle textures (for information)
+W - Forwards\
+S - Backwards\
+A - Strafe Left\
+D - Strafe Right\
+Q - Rotate Anti-clockwise\
+E - Rotate Clockwise\
+T - Toggle textures (for information)\
 
 ## Map File Structure
 
