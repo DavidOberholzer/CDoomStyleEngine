@@ -3,12 +3,15 @@
 #include "graphics.h"
 #include "worldmath.h"
 
+#define MOVESPEED 0.04
+
 static float playerView = 40;
 static float viewMovement = 0;
 static int viewDown = 1;
 static int playerHeight = 0;
 static int fallHeight = 0;
 static int fallingVelocity = 0;
+int showTextures = 1;
 
 static void RenderWalls()
 {
@@ -284,6 +287,11 @@ void GameLoop()
 				case SDLK_e:
 					keysPressed[5] = event.type == SDL_KEYDOWN ? 1 : 0;
 					break;
+				case SDLK_t:
+					if (event.type == SDL_KEYDOWN) {
+						showTextures = showTextures ? 0 : 1;
+					}
+					break;
 				case SDLK_ESCAPE:
 					close = 1;
 					break;
@@ -312,8 +320,8 @@ void GameLoop()
 
 		HandleFalling();
 
-		player.angle -= keysPressed[4] ? 0.03f : 0;
-		player.angle += keysPressed[5] ? 0.03f : 0;
+		player.angle -= keysPressed[4] ? 0.04f : 0;
+		player.angle += keysPressed[5] ? 0.04f : 0;
 
 		SDL_Delay(10);
 	}

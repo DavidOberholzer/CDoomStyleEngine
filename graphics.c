@@ -1,5 +1,6 @@
 #include <SDL2/SDL.h>
 
+#include "game.h"
 #include "graphics.h"
 #include "data_io.h"
 #include "structures.h"
@@ -50,10 +51,10 @@ void ClearFrame()
 
 void RenderLine(int x, int y1, int y2, int yt, int yb, int R, int G, int B, float distance, int u, int roof, int ground, int textureIndex, int currentSector)
 {
-	float light_level = 0.4;
+	float light_level = showTextures ? 0.4 : 1;
 	if (roof == 1 || ground == 1)
 	{
-		if (currentSector > 2 || roof == 1)
+		if (currentSector > 2 || roof == 1 || showTextures == 0)
 		{
 			SDL_SetRenderDrawColor(renderer, R * light_level, G * light_level, B * light_level, 0x00);
 			SDL_RenderDrawLine(renderer, x, y1, x, y2);
@@ -64,9 +65,6 @@ void RenderLine(int x, int y1, int y2, int yt, int yb, int R, int G, int B, floa
 			{
 				float screenLightLevel = screenLightMap[y] * light_level;
 				screenLightLevel = screenLightLevel > 0.4 ? screenLightLevel : 0.4;
-				if (y == 1) {
-					printf("%0.2f\n", screenLightLevel);
-				}
 				SDL_SetRenderDrawColor(renderer, screenLightLevel * R, screenLightLevel * G, screenLightLevel * B, 0x00);
 				SDL_RenderDrawPoint(renderer, x, y);
 			}
@@ -74,8 +72,8 @@ void RenderLine(int x, int y1, int y2, int yt, int yb, int R, int G, int B, floa
 	}
 	else
 	{
-		light_level = distance < 4 ? 1 : distance > 20 ? 0.2 : 4 / distance;
-		if (u == -1 || textureIndex == -1)
+		light_level = showTextures ? (distance < 4 ? 1 : distance > 20 ? 0.2 : 4 / distance) : 1;
+		if ((u == -1 || textureIndex == -1) || showTextures != 1)
 		{
 			SDL_SetRenderDrawColor(renderer, R * light_level, G * light_level, B * light_level, 0x00);
 			SDL_RenderDrawLine(renderer, x, y1, x, y2);

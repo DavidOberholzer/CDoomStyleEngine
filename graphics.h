@@ -7,7 +7,6 @@
 #define HEIGHT 480
 #define PI 3.141592653589793238
 #define VIEWANGLE 5 * PI / 12
-#define MOVESPEED 0.05
 
 extern SDL_Window *window;
 extern SDL_Renderer *renderer;
