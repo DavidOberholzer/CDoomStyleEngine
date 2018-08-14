@@ -15,7 +15,7 @@ void InitGraphics()
 {
 	SDL_Init(SDL_INIT_EVERYTHING);
 
-	window = SDL_CreateWindow("2.5d Engine David", 0, 0, WIDTH, HEIGHT, SDL_WINDOW_FULLSCREEN_DESKTOP);
+	window = SDL_CreateWindow("2.5d Engine David", 0, 0, WIDTH, HEIGHT, 0);
 
 	if (window == NULL)
 	{
@@ -41,9 +41,9 @@ void ClearFrame()
 	SDL_RenderClear(renderer);
 }
 
-void RenderLine(int x, int y1, int y2, int yt, int yb, int R, int G, int B, float distance, int u, int roof, int ground, int textureIndex, int currentSector)
+void RenderLine(int x, int y1, int y2, int yt, int yb, int R, int G, int B, float distance, float sctrLight, int u, int roof, int ground, int textureIndex, int currentSector)
 {
-	float light_level = showTextures ? 0.4 : 1;
+	float light_level = showTextures ? 0.4 * sctrLight : 1;
 	if (roof == 1 || ground == 1)
 	{
 		if (currentSector != 0 || roof == 1 || showTextures == 0)
@@ -56,7 +56,6 @@ void RenderLine(int x, int y1, int y2, int yt, int yb, int R, int G, int B, floa
 			for (int y = y1; y <= y2; y++)
 			{
 				float screenLightLevel = screenLightMap[y] * light_level;
-				screenLightLevel = screenLightLevel > 0.4 ? screenLightLevel : 0.4;
 				SDL_SetRenderDrawColor(renderer, screenLightLevel * R, screenLightLevel * G, screenLightLevel * B, 0x00);
 				SDL_RenderDrawPoint(renderer, x, y);
 			}
@@ -64,7 +63,7 @@ void RenderLine(int x, int y1, int y2, int yt, int yb, int R, int G, int B, floa
 	}
 	else
 	{
-		light_level = showTextures ? (distance < 4 ? 1 : distance > 20 ? 0.2 : 4 / distance) : 1;
+		light_level = showTextures ? (distance < 4 ? 1 : distance > 20 ? 0.2 : 4 / distance) * sctrLight : 1;
 		if ((u < 0 || textureIndex == -1) || showTextures != 1)
 		{
 			SDL_SetRenderDrawColor(renderer, R * light_level, G * light_level, B * light_level, 0x00);

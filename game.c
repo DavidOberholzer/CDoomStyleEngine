@@ -1,9 +1,12 @@
+#include <time.h>
+#include <unistd.h>
+
 #include "data_io.h"
 #include "game.h"
 #include "graphics.h"
 #include "worldmath.h"
 
-#define MOVESPEED 0.04
+#define MOVESPEED 0.03
 
 static float playerView = 40;
 static float viewMovement = 0;
@@ -101,8 +104,8 @@ static void RenderWalls()
 						float dy = *(ptr + 1) * (1 - t) + *(ptr + 3) * t;
 						float distance = dx * dx + dy * dy;
 						// // Draw roofs and floors.
-						RenderLine(x, yTopLimit[x], yt, yTop, yBottom, 0x78, 0x78, 0x78, distance, -1, 1, 0, -1, current);
-						RenderLine(x, yb, yBottomLimit[x], yTop, yBottom, 0x79, 0x79, 0x79, distance, -1, 0, 1, -1, current);
+						RenderLine(x, yTopLimit[x], yt, yTop, yBottom, 0x78, 0x78, 0x78, distance, sctr->lightlevel, -1, 1, 0, -1, current);
+						RenderLine(x, yb, yBottomLimit[x], yTop, yBottom, 0x79, 0x79, 0x79, distance, sctr->lightlevel, -1, 0, 1, -1, current);
 
 						if (sctr->lineDef[i].adjacent > -1)
 						{
@@ -113,7 +116,7 @@ static void RenderWalls()
 								int u = tex / z;
 								int realStepY = stepy1 * (1 - t) + stepy2 * t + 0.5;
 								int stepY = Clamp(yBottomLimit[x], yTopLimit[x], realStepY); // +0.5 to remove jaggies.
-								RenderLine(x, stepY, yb, realStepY, yBottom, 0x37, 0xcd, 0xc1, distance, u, 0, 0, sctr->lineDef[i].floorTexture, current);
+								RenderLine(x, stepY, yb, realStepY, yBottom, 0x37, 0xcd, 0xc1, distance, sctr->lightlevel, u, 0, 0, sctr->lineDef[i].floorTexture, current);
 								yBottomLimit[x] = stepY;
 							}
 							else
@@ -128,7 +131,7 @@ static void RenderWalls()
 								int u = tex / z;
 								int realCeilY = ceily1 * (1 - t) + ceily2 * t + 0.5;
 								int ceilY = Clamp(yBottomLimit[x], yTopLimit[x], realCeilY); // +0.5 to remove jaggies.
-								RenderLine(x, yt, ceilY, yTop, realCeilY, 0xa7, 0x37, 0xcd, distance, u, 0, 0, sctr->lineDef[i].ceilingTexture, current);
+								RenderLine(x, yt, ceilY, yTop, realCeilY, 0xa7, 0x37, 0xcd, distance, sctr->lightlevel, u, 0, 0, sctr->lineDef[i].ceilingTexture, current);
 								yTopLimit[x] = ceilY;
 							}
 							else
@@ -141,7 +144,7 @@ static void RenderWalls()
 							// Draw a normal wall.
 							float tex = tex1 * (1 - t2) + texw2 * t2;
 							int u = tex / z;
-							RenderLine(x, yt, yb, yTop, yBottom, 0xcc, 0xc5, 0xce, distance, u, 0, 0, sctr->lineDef[i].wallTexture, current);
+							RenderLine(x, yt, yb, yTop, yBottom, 0xcc, 0xc5, 0xce, distance, sctr->lightlevel, u, 0, 0, sctr->lineDef[i].wallTexture, current);
 						}
 					}
 					// Load in next in next portal if adjacent sector found.
@@ -261,8 +264,10 @@ void GameLoop()
 {
 	int keysPressed[6] = {0, 0, 0, 0, 0, 0}; //Init key states to not pressed.
 	int close = 0;
+	time_t start, end;
 	while (!close)
 	{
+		start = clock();
 		ClearFrame();
 		RenderWalls();
 		PresentFrame();
@@ -333,6 +338,12 @@ void GameLoop()
 		player.angle -= keysPressed[4] ? 0.04f : 0;
 		player.angle += keysPressed[5] ? 0.04f : 0;
 
-		SDL_Delay(0);
+		end = clock();
+		double diff = difftime(end, start);
+		if (diff < 16667)
+		{
+			int wait = 16667 - diff;
+			usleep(wait);
+		}
 	}
 }

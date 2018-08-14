@@ -14,7 +14,7 @@ extern SDL_Surface *surface;
 
 void InitGraphics();
 void ClearFrame();
-void RenderLine(int, int, int, int, int, int, int, int, float, int, int, int, int, int);
+void RenderLine(int, int, int, int, int, int, int, int, float, float, int, int, int, int, int);
 void PresentFrame();
 void TearDownGraphics();
 
