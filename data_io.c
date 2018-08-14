@@ -164,8 +164,13 @@ void LoadScreenLightMap()
 {
     for (int y = 0; y < HEIGHT; y++)
     {
-        float t = ((y < HEIGHT / 2) ? ((HEIGHT / 2) - y) : (y - HEIGHT / 2)) / (float) (HEIGHT / 2);
-        float lightlevel = t * 2.5;
+        float lightlevel = 0;
+        if (y > HEIGHT / 6)
+        {
+            float t = (y - HEIGHT / 6) / (float)(HEIGHT);
+            lightlevel = t * 2.5;
+        }
+
         screenLightMap[y] = lightlevel;
     }
 }

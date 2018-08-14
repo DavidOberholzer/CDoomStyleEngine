@@ -4,17 +4,18 @@
 #include "graphics.h"
 #include "data_io.h"
 #include "structures.h"
+#include "worldmath.h"
 
 // SDL Window and Surface.
 SDL_Window *window = NULL;
 SDL_Renderer *renderer = NULL;
-SDL_Texture *texture = NULL;
+SDL_Surface *surface = NULL;
 
 void InitGraphics()
 {
 	SDL_Init(SDL_INIT_EVERYTHING);
 
-	window = SDL_CreateWindow("2.5d Engine David", 0, 0, WIDTH, HEIGHT, SDL_WINDOW_MAXIMIZED);
+	window = SDL_CreateWindow("2.5d Engine David", 0, 0, WIDTH, HEIGHT, SDL_WINDOW_FULLSCREEN_DESKTOP);
 
 	if (window == NULL)
 	{
@@ -22,20 +23,12 @@ void InitGraphics()
 		exit(1);
 	}
 
-	renderer = SDL_CreateRenderer(window, -1, 0);
+	surface = SDL_GetWindowSurface(window);
+	renderer = SDL_CreateSoftwareRenderer(surface);
 
 	if (renderer == NULL)
 	{
 		printf("SDL_CreateRenderer failed: %s\n", SDL_GetError());
-		exit(1);
-	}
-
-	// Get Texture from renderer.
-	texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, WIDTH, HEIGHT);
-
-	if (texture == NULL)
-	{
-		printf("SDL_CreateTexture failed: %s\n", SDL_GetError());
 		exit(1);
 	}
 
@@ -44,7 +37,6 @@ void InitGraphics()
 
 void ClearFrame()
 {
-	SDL_SetRenderTarget(renderer, texture);
 	SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0x00, 0x00);
 	SDL_RenderClear(renderer);
 }
@@ -54,7 +46,7 @@ void RenderLine(int x, int y1, int y2, int yt, int yb, int R, int G, int B, floa
 	float light_level = showTextures ? 0.4 : 1;
 	if (roof == 1 || ground == 1)
 	{
-		if (currentSector > 2 || roof == 1 || showTextures == 0)
+		if (currentSector != 0 || roof == 1 || showTextures == 0)
 		{
 			SDL_SetRenderDrawColor(renderer, R * light_level, G * light_level, B * light_level, 0x00);
 			SDL_RenderDrawLine(renderer, x, y1, x, y2);
@@ -73,7 +65,7 @@ void RenderLine(int x, int y1, int y2, int yt, int yb, int R, int G, int B, floa
 	else
 	{
 		light_level = showTextures ? (distance < 4 ? 1 : distance > 20 ? 0.2 : 4 / distance) : 1;
-		if ((u == -1 || textureIndex == -1) || showTextures != 1)
+		if ((u < 0 || textureIndex == -1) || showTextures != 1)
 		{
 			SDL_SetRenderDrawColor(renderer, R * light_level, G * light_level, B * light_level, 0x00);
 			SDL_RenderDrawLine(renderer, x, y1, x, y2);
@@ -98,9 +90,7 @@ void RenderLine(int x, int y1, int y2, int yt, int yb, int R, int G, int B, floa
 
 void PresentFrame()
 {
-	SDL_SetRenderTarget(renderer, NULL);
-	SDL_RenderCopy(renderer, texture, NULL, NULL);
-	SDL_RenderPresent(renderer);
+	SDL_UpdateWindowSurface(window);
 }
 
 void TearDownGraphics()

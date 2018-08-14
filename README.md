@@ -14,7 +14,7 @@ A - Strafe Left\
 D - Strafe Right\
 Q - Rotate Anti-clockwise\
 E - Rotate Clockwise\
-T - Toggle textures (for information)\
+T - Toggle textures (for information)
 
 ## Map File Structure
 

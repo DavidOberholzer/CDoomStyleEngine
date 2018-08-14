@@ -57,7 +57,7 @@ static void RenderWalls()
 
 			if (*ptr > 0 && *(ptr + 2) > 0)
 			{
-				int s1, s2, us1, us2, tex1, tex2, zt1, zb1, zt2, zb2, stepy1, stepy2, ceily1, ceily2;
+				int s1, s2, us1, us2, tex1, texw2, texc2, texf2, zt1, zb1, zt2, zb2, stepy1, stepy2, ceily1, ceily2;
 				float z1, z2;
 				// Wall X transformation
 				s1 = (500 * *(ptr + 1) / *ptr) + WIDTH / 2;
@@ -67,7 +67,10 @@ static void RenderWalls()
 				z1 = 1 / rotx1;
 				z2 = 1 / rotx2;
 				tex1 = 0 * z1;
-				tex2 = 400 * z2;
+				texw2 = sctr->lineDef[i].wallTexture > -1 ? (textures[sctr->lineDef[i].wallTexture - 1].width - 1) * z2 : 0;
+				texc2 = sctr->lineDef[i].ceilingTexture > -1 ? (textures[sctr->lineDef[i].ceilingTexture - 1].width - 1) * z2 : 0;
+				texf2 = sctr->lineDef[i].floorTexture > -1 ? (textures[sctr->lineDef[i].floorTexture - 1].width - 1) * z2 : 0;
+
 				zt1 = (-(sctr->ceilingheight - ph) / *ptr) + HEIGHT / 2;
 				zb1 = ((ph - sctr->floorheight) / *ptr) + HEIGHT / 2;
 				zt2 = (-(sctr->ceilingheight - ph) / *(ptr + 2)) + HEIGHT / 2;
@@ -90,8 +93,6 @@ static void RenderWalls()
 						float t = (x - s1) / (float)(s2 - s1);
 						float t2 = (x - us1) / (float)(us2 - us1);
 						float z = z1 * (1 - t2) + z2 * t2;
-						float tex = tex1 * (1 - t2) + tex2 * t2;
-						int u = tex / z;
 						int yTop = zt1 * (1 - t) + zt2 * t + 0.5;	// +0.5 to remove jaggies.
 						int yBottom = zb1 * (1 - t) + zb2 * t + 0.5; // +0.5 to remove jaggies.
 						int yt = Clamp(yBottomLimit[x], yTopLimit[x], yTop);
@@ -100,14 +101,16 @@ static void RenderWalls()
 						float dy = *(ptr + 1) * (1 - t) + *(ptr + 3) * t;
 						float distance = dx * dx + dy * dy;
 						// // Draw roofs and floors.
-						RenderLine(x, yTopLimit[x], yt, yTop, yBottom, 0x78 * sctr->lightlevel, 0x78 * sctr->lightlevel, 0x78 * sctr->lightlevel, distance, -1, 1, 0, -1, current);
-						RenderLine(x, yb, yBottomLimit[x], yTop, yBottom, 0x79 * sctr->lightlevel, 0x79 * sctr->lightlevel, 0x79 * sctr->lightlevel, distance, -1, 0, 1, -1, current);
+						RenderLine(x, yTopLimit[x], yt, yTop, yBottom, 0x78, 0x78, 0x78, distance, -1, 1, 0, -1, current);
+						RenderLine(x, yb, yBottomLimit[x], yTop, yBottom, 0x79, 0x79, 0x79, distance, -1, 0, 1, -1, current);
 
 						if (sctr->lineDef[i].adjacent > -1)
 						{
 							if (sectors[sctr->lineDef[i].adjacent - 1].floorheight > sctr->floorheight)
 							{
 								// Create a floor wall for the change in height.
+								float tex = tex1 * (1 - t2) + texf2 * t2;
+								int u = tex / z;
 								int realStepY = stepy1 * (1 - t) + stepy2 * t + 0.5;
 								int stepY = Clamp(yBottomLimit[x], yTopLimit[x], realStepY); // +0.5 to remove jaggies.
 								RenderLine(x, stepY, yb, realStepY, yBottom, 0x37, 0xcd, 0xc1, distance, u, 0, 0, sctr->lineDef[i].floorTexture, current);
@@ -121,6 +124,8 @@ static void RenderWalls()
 							if (sectors[sctr->lineDef[i].adjacent - 1].ceilingheight < sctr->ceilingheight)
 							{
 								// Create a ceiling for the change in height.
+								float tex = tex1 * (1 - t2) + texc2 * t2;
+								int u = tex / z;
 								int realCeilY = ceily1 * (1 - t) + ceily2 * t + 0.5;
 								int ceilY = Clamp(yBottomLimit[x], yTopLimit[x], realCeilY); // +0.5 to remove jaggies.
 								RenderLine(x, yt, ceilY, yTop, realCeilY, 0xa7, 0x37, 0xcd, distance, u, 0, 0, sctr->lineDef[i].ceilingTexture, current);
@@ -134,6 +139,8 @@ static void RenderWalls()
 						else
 						{
 							// Draw a normal wall.
+							float tex = tex1 * (1 - t2) + texw2 * t2;
+							int u = tex / z;
 							RenderLine(x, yt, yb, yTop, yBottom, 0xcc, 0xc5, 0xce, distance, u, 0, 0, sctr->lineDef[i].wallTexture, current);
 						}
 					}
@@ -191,8 +198,10 @@ static void HandleCollision()
 			}
 			if (!canStep)
 			{
-				float crossing = SideOfLine(player.position.x + player.velocity.x, player.position.y + player.velocity.y, sectors[i].lineDef[j].x1, sectors[i].lineDef[j].y1, sectors[i].lineDef[j].x2, sectors[i].lineDef[j].y2);
-				int overlap = BoxesOverlap(player.position.x, player.position.y, player.position.x + player.velocity.x, player.position.y + player.velocity.y, sectors[i].lineDef[j].x1, sectors[i].lineDef[j].y1, sectors[i].lineDef[j].x2, sectors[i].lineDef[j].y2);
+				float movingX = player.velocity.x > 0 ? player.velocity.x + 0.1 : player.velocity.x - 0.1;
+				float movingY = player.velocity.y > 0 ? player.velocity.y + 0.1 : player.velocity.y - 0.1;
+				float crossing = SideOfLine(player.position.x + movingX, player.position.y + movingY, sectors[i].lineDef[j].x1, sectors[i].lineDef[j].y1, sectors[i].lineDef[j].x2, sectors[i].lineDef[j].y2);
+				int overlap = BoxesOverlap(player.position.x, player.position.y, player.position.x + movingX, player.position.y + movingY, sectors[i].lineDef[j].x1, sectors[i].lineDef[j].y1, sectors[i].lineDef[j].x2, sectors[i].lineDef[j].y2);
 				// Check if the player is going to move behind the given wall and within range of the wall.
 				if (crossing < 0 && overlap)
 				{
@@ -288,7 +297,8 @@ void GameLoop()
 					keysPressed[5] = event.type == SDL_KEYDOWN ? 1 : 0;
 					break;
 				case SDLK_t:
-					if (event.type == SDL_KEYDOWN) {
+					if (event.type == SDL_KEYDOWN)
+					{
 						showTextures = showTextures ? 0 : 1;
 					}
 					break;
@@ -323,6 +333,6 @@ void GameLoop()
 		player.angle -= keysPressed[4] ? 0.04f : 0;
 		player.angle += keysPressed[5] ? 0.04f : 0;
 
-		SDL_Delay(10);
+		SDL_Delay(0);
 	}
 }
