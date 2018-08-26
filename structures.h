@@ -3,6 +3,23 @@
 
 #include <stdlib.h>
 
+// Screen Line
+struct screen_line
+{
+	float sx1, sy1, sx2, sy2;
+	float oz1, oz2;
+	float uoz1, voz1, uoz2, voz2;
+	int clipped;
+};
+
+// Poly Line
+struct poly_line
+{
+	float x1, y1, x2, y2;
+	float u1, v1, u2, v2;
+	int clipped;
+};
+
 // Vertex
 struct xy
 {
@@ -22,6 +39,11 @@ struct sector
 	float floorheight, ceilingheight, lightlevel;
 	struct line *lineDef;
 	unsigned lineNum;
+	struct object *objectDef;
+	unsigned objectNum;
+	signed char floorTexture, ceilingTexture;
+	// Four texture points
+	struct xy t1, t2, t3, t4;
 };
 
 // Player location
@@ -36,9 +58,15 @@ struct player
 struct texture
 {
 	unsigned char *pixels;
-	int width;
-	int height;
-	int components;
+	int width, height, components;
+};
+
+// Object Structure
+struct object
+{
+	unsigned char *pixels;
+	int width, height, components, sector;
+	float x, y;
 };
 
 #endif

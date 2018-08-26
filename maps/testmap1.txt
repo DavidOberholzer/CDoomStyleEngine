@@ -1,15 +1,23 @@
-line 0 0 5 0 x
-line 5 0 5 2.5 x
-line 5 2.5 5 5 2
-line 5 5 0 5 x
-line 0 5 0 0 x
+line 0 0 5 0 x 1 x x
+line 5 0 5 2.5 x 1 x x
+line 5 2.5 5 5 2 x 2 3
+line 5 5 0 5 x 1 x x
+line 0 5 0 0 x 1 x x
 
-line 5 5 5 2.5 1
-line 5 2.5 10 2.5 x
-line 10 2.5 10 5 x
-line 10 5 5 5 x
+line 5 5 5 2.5 1 x 2 3
+line 5 2.5 10 2.5 x 1 x x
+line 10 2.5 10 5 x 1 x x
+line 10 5 5 5 x 1 x x
 
-sector 0 100 1       1 2 3 4 5
-sector 10 90 0.5    6 7 8 9
+object 4.5 12.5 1 torch.jpeg
+
+sector 0 100 1 4 5       1 2 3 4 5
+sector 10 90 0.5 x x     6 7 8 9
 
 player 2.5 2.5 0 1
+
+texture WallWood1.jpeg
+texture RoofWall1.jpeg
+texture StepWall1.jpeg
+texture floor1.jpeg
+texture roof1.jpeg

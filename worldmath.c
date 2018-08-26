@@ -1,6 +1,8 @@
 // External Includes
 #include <math.h>
 
+#include "structures.h"
+
 float DotProduct(float vx1, float vy1, float vx2, float vy2)
 {
     return (vx1 * vx2 + vy1 * vy2);
@@ -145,4 +147,37 @@ float *ClipViewCone(float x1, float y1, float x2, float y2, float angle)
     ret[2] = x2;
     ret[3] = y2;
     return ret;
+}
+
+struct poly_line GetPolyLine(float x1, float y1, float x2, float y2, int u1, int v1, int u2, int v2, float angle)
+{
+    struct poly_line line;
+    float *points;
+    points = ClipViewCone(x1, y1, x2, y2, angle);
+    if (*points > 0 && *(points + 2) > 0)
+    {
+        int du = u2 - u1,
+            dv = v2 - v1;
+        float dxb = x2 - x1,
+              dyb = y2 - y1,
+              dxa = *(points + 2) - *points,
+              dya = *(points + 3) - *(points + 1),
+              ratio;
+        ratio = sqrt(dxa * dxa + dya * dya) / sqrt(dxb * dxb + dyb * dyb);
+        if (*points != x1)
+        {
+            ratio = 1 - ratio;
+            line = (struct poly_line){*points, *(points + 1), *(points + 2), *(points + 3), du * ratio, dv * ratio, u2, v2, 0};
+        }
+        else if (*(points + 2) != x2)
+        {
+            line = (struct poly_line){*points, *(points + 1), *(points + 2), *(points + 3), u1, v1, du * ratio, dv * ratio, 0};
+        }
+        else
+        {
+            line = (struct poly_line){*points, *(points + 1), *(points + 2), *(points + 3), u1, v1, u2, v2, 0};
+        }
+        return line;
+    }
+    return (struct poly_line){0, 0, 0, 0, 0, 0, 0, 0, 1};
 }
