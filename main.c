@@ -7,7 +7,6 @@
 int main()
 {
     LoadMapFile("testmap1.txt");
-    LoadScreenLightMap();
     InitGraphics();
     GameLoop();
     TearDownGraphics();

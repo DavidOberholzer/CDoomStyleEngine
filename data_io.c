@@ -15,7 +15,6 @@ int numTextures = 0;
 struct sector *sectors = NULL;
 int numSectors = 0;
 struct player player;
-float screenLightMap[HEIGHT];
 
 // Custom Error Handler
 struct my_error_mgr
@@ -278,21 +277,6 @@ void LoadTexture(char *filename)
     fclose(infile);
     free(buffer);
     printf("Successfully loaded texture %s\n", filename);
-}
-
-void LoadScreenLightMap()
-{
-    for (int y = 0; y < HEIGHT; y++)
-    {
-        float lightlevel = 0;
-        if (y > HEIGHT / 6)
-        {
-            float t = (y - HEIGHT / 6) / (float)(HEIGHT);
-            lightlevel = t * 2.5;
-        }
-
-        screenLightMap[y] = lightlevel;
-    }
 }
 
 void UnloadData()
