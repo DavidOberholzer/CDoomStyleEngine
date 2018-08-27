@@ -33,6 +33,12 @@ struct line
 	signed char wallTexture, ceilingTexture, floorTexture;
 };
 
+// Render Portal
+struct portal
+{
+	int sectorNo, x1, x2;
+};
+
 // Sectors
 struct sector
 {

@@ -70,6 +70,36 @@ float *IntersectionPoint(float x1, float y1, float x2, float y2, float x3, float
     return ret;
 }
 
+float *ClipBehindPlayer(float x1, float y1, float x2, float y2)
+{
+    static float ret[4];
+    if (x1 < 0 && x2 < 0)
+    {
+        ret[0] = -1;
+        ret[1] = -1;
+        ret[2] = -1;
+        ret[3] = -1;
+        return ret;
+    }
+    if (x1 < 0)
+    {
+        float t = (x2 - 0.01) / (x2 - x1);
+        x1 = 0.01;
+        y1 = y2 * (1 - t) + y1 * t;
+    }
+    else if (x2 < 0)
+    {
+        float t = (x1 - 0.01) / (x1 - x2);
+        x2 = 0.01;
+        y2 = y1 * (1 - t) + y2 * t;
+    }
+    ret[0] = x1;
+    ret[1] = y1;
+    ret[2] = x2;
+    ret[3] = y2;
+    return ret;
+}
+
 float *ClipViewCone(float x1, float y1, float x2, float y2, float angle)
 {
     // Top cone line
@@ -153,7 +183,7 @@ struct poly_line GetPolyLine(float x1, float y1, float x2, float y2, int u1, int
 {
     struct poly_line line;
     float *points;
-    points = ClipViewCone(x1, y1, x2, y2, angle);
+    points = ClipBehindPlayer(x1, y1, x2, y2);
     if (*points > 0 && *(points + 2) > 0)
     {
         int du = u2 - u1,
@@ -164,14 +194,25 @@ struct poly_line GetPolyLine(float x1, float y1, float x2, float y2, int u1, int
               dya = *(points + 3) - *(points + 1),
               ratio;
         ratio = sqrt(dxa * dxa + dya * dya) / sqrt(dxb * dxb + dyb * dyb);
-        if (*points != x1)
+        if (*points != x1 || *(points + 1) != y1)
         {
-            ratio = 1 - ratio;
-            line = (struct poly_line){*points, *(points + 1), *(points + 2), *(points + 3), du * ratio, dv * ratio, u2, v2, 0};
+            if (u2 > u1 || v2 > v1)
+            {
+                ratio = 1 - ratio;
+            }
+            u1 = du ? fabs(du * ratio) : u1;
+            v1 = dv ? fabs(dv * ratio) : v1;
+            line = (struct poly_line){*points, *(points + 1), *(points + 2), *(points + 3), u1, v1, u2, v2, 0};
         }
-        else if (*(points + 2) != x2)
+        else if (*(points + 2) != x2 || *(points + 3) != y2)
         {
-            line = (struct poly_line){*points, *(points + 1), *(points + 2), *(points + 3), u1, v1, du * ratio, dv * ratio, 0};
+            if (u1 > u2 || v1 > v2)
+            {
+                ratio = 1 - ratio;
+            }
+            u2 = du ? fabs(du * ratio) : u2;
+            v2 = dv ? fabs(dv * ratio) : v2;
+            line = (struct poly_line){*points, *(points + 1), *(points + 2), *(points + 3), u1, v1, u2, v2, 0};
         }
         else
         {
