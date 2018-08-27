@@ -16,7 +16,7 @@ static int fallHeight = 0;
 static int fallingVelocity = 0;
 int showTextures = 1;
 
-static void RenderFlat(struct xy t1, struct xy t2, struct xy t3, struct xy t4, int tex, float viewHeight, struct portal *currentPortal, int yt[WIDTH], int yb[WIDTH])
+static void RenderFlat(struct xy t1, struct xy t2, struct xy t3, struct xy t4, int tex, float viewHeight, float sctrLightLevel, struct portal *currentPortal, int yt[WIDTH], int yb[WIDTH])
 {
 	struct texture *texture = &textures[tex - 1];
 	struct xy points[4];
@@ -140,7 +140,7 @@ static void RenderFlat(struct xy t1, struct xy t2, struct xy t3, struct xy t4, i
 							float t = (x - startX) / (float)(endX - startX);
 							int u = Clamp(texture->width - 1, 0, ((startU * (1 - t) + endU * t) / oz) + 0.5);
 							int v = Clamp(texture->height - 1, 0, ((startV * (1 - t) + endV * t) / oz) + 0.5);
-							float lightlevel = (oz * 2) > 1 ? 1 : oz * 2;
+							float lightlevel = ((oz * 2) > 1 ? 1 : oz * 2) * sctrLightLevel;
 							int index = (u + v * texture->width) * texture->components;
 							SDL_SetRenderDrawColor(renderer, texture->pixels[index] * lightlevel, texture->pixels[index + 1] * lightlevel, texture->pixels[index + 2] * lightlevel, 0x00);
 							SDL_RenderDrawPoint(renderer, x, y);
@@ -180,11 +180,11 @@ static void RenderWalls()
 		struct sector *sctr = &sectors[currentPortal->sectorNo - 1];
 		if (sctr->floorTexture > 0)
 		{
-			RenderFlat(sctr->t1, sctr->t2, sctr->t3, sctr->t4, sctr->floorTexture, ph - sctr->floorheight, currentPortal, yTopLimit, yBottomLimit);
+			RenderFlat(sctr->t1, sctr->t2, sctr->t3, sctr->t4, sctr->floorTexture, ph - sctr->floorheight, sctr->lightlevel, currentPortal, yTopLimit, yBottomLimit);
 		}
 		if (sctr->ceilingTexture > 0)
 		{
-			RenderFlat(sctr->t1, sctr->t2, sctr->t3, sctr->t4, sctr->ceilingTexture, -(sctr->ceilingheight - ph), currentPortal, yTopLimit, yBottomLimit);
+			RenderFlat(sctr->t1, sctr->t2, sctr->t3, sctr->t4, sctr->ceilingTexture, -(sctr->ceilingheight - ph), sctr->lightlevel, currentPortal, yTopLimit, yBottomLimit);
 		}
 		for (int i = 0; i < sctr->lineNum; i++)
 		{

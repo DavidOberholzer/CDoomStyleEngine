@@ -55,8 +55,7 @@ void RenderLine(int x, int y1, int y2, int yt, int yb, int R, int G, int B, floa
 		{
 			for (int y = y1; y <= y2; y++)
 			{
-				float screenLightLevel = screenLightMap[y] * light_level;
-				SDL_SetRenderDrawColor(renderer, screenLightLevel * R, screenLightLevel * G, screenLightLevel * B, 0x00);
+				SDL_SetRenderDrawColor(renderer, light_level * R, light_level * G, light_level * B, 0x00);
 				SDL_RenderDrawPoint(renderer, x, y);
 			}
 		}
