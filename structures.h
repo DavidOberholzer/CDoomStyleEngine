@@ -6,7 +6,7 @@
 // Screen Line
 struct screen_line
 {
-	float sx1, sy1, sx2, sy2;
+	int sx1, sy1, sx2, sy2;
 	float oz1, oz2;
 	float uoz1, voz1, uoz2, voz2;
 	int clipped;
@@ -24,6 +24,12 @@ struct poly_line
 struct xy
 {
 	float x, y;
+};
+
+// Poly floor/roof
+struct poly
+{
+	struct xy t1, t2, t3, t4;
 };
 
 struct line

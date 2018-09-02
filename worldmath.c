@@ -72,8 +72,9 @@ float *IntersectionPoint(float x1, float y1, float x2, float y2, float x3, float
 
 float *ClipBehindPlayer(float x1, float y1, float x2, float y2)
 {
+    float back = 0.02;
     static float ret[4];
-    if (x1 < 0 && x2 < 0)
+    if (x1 < back && x2 < back)
     {
         ret[0] = -1;
         ret[1] = -1;
@@ -81,16 +82,16 @@ float *ClipBehindPlayer(float x1, float y1, float x2, float y2)
         ret[3] = -1;
         return ret;
     }
-    if (x1 < 0)
+    if (x1 < back)
     {
-        float t = (x2 - 0.01) / (x2 - x1);
-        x1 = 0.01;
+        float t = (x2 - back) / (x2 - x1);
+        x1 = back;
         y1 = y2 * (1 - t) + y1 * t;
     }
-    else if (x2 < 0)
+    else if (x2 < back)
     {
-        float t = (x1 - 0.01) / (x1 - x2);
-        x2 = 0.01;
+        float t = (x1 - back) / (x1 - x2);
+        x2 = back;
         y2 = y1 * (1 - t) + y2 * t;
     }
     ret[0] = x1;
