@@ -1,7 +1,0 @@
-line 0 0 2.5 0 x x
-line 5 0 7.5 2.5 x 1
-sector 0 400 1       1 2
-
-player 2.5 2.5 0 1
-
-texture WallWood1.jpeg

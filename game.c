@@ -6,15 +6,228 @@
 #include "graphics.h"
 #include "worldmath.h"
 
-#define MOVESPEED 0.03
+#define MOVESPEED 0.05
+#define FOV 300
 
-static float playerView = 40;
+static float playerView = 400;
 static float viewMovement = 0;
 static int viewDown = 1;
 static int playerHeight = 0;
 static int fallHeight = 0;
 static int fallingVelocity = 0;
 int showTextures = 1;
+
+static void RenderFlat(struct xy t1, struct xy t2, struct xy t3, struct xy t4, int tex, float viewHeight, float sctrLightLevel, struct portal *currentPortal, int yt[WIDTH], int yb[WIDTH], int reverse)
+{
+	struct texture *texture = &textures[tex - 1];
+	struct xy points[4];
+	float angle = player.angle;
+	points[0].x = (t1.x - player.position.x) * cos(angle) + (t1.y - player.position.y) * sin(angle);
+	points[0].y = (t1.y - player.position.y) * cos(angle) - (t1.x - player.position.x) * sin(angle);
+	points[1].x = (t2.x - player.position.x) * cos(angle) + (t2.y - player.position.y) * sin(angle);
+	points[1].y = (t2.y - player.position.y) * cos(angle) - (t2.x - player.position.x) * sin(angle);
+	points[2].x = (t3.x - player.position.x) * cos(angle) + (t3.y - player.position.y) * sin(angle);
+	points[2].y = (t3.y - player.position.y) * cos(angle) - (t3.x - player.position.x) * sin(angle);
+	points[3].x = (t4.x - player.position.x) * cos(angle) + (t4.y - player.position.y) * sin(angle);
+	points[3].y = (t4.y - player.position.y) * cos(angle) - (t4.x - player.position.x) * sin(angle);
+	struct poly_line lines[4];
+	struct xy uvs[4];
+	uvs[0] = (struct xy){0, 0};
+	uvs[1] = (struct xy){texture->width - 1, 0};
+	uvs[2] = (struct xy){texture->width - 1, texture->height - 1};
+	uvs[3] = (struct xy){0, texture->height - 1};
+	for (int i = 0; i < 4; i++)
+	{
+		int i2 = (i + 1) < 4 ? i + 1 : 0;
+		lines[i] = GetPolyLine(
+			points[i].x, points[i].y, points[i2].x, points[i2].y,
+			uvs[i].x, uvs[i].y, uvs[i2].x, uvs[i2].y, VIEWANGLE);
+	}
+	int yStart = HEIGHT - 1, yEnd = 0, startLine = -1;
+	struct screen_line sLines[4];
+	for (int i = 0; i < 4; i++)
+	{
+		if (!lines[i].clipped)
+		{
+			float oz1, oz2;
+			int ust1, ust2, zb1, zb2, yless, ymore;
+			oz1 = 1 / lines[i].x1;
+			oz2 = 1 / lines[i].x2;
+			ust1 = (FOV * lines[i].y1 * oz1) + WIDTH / 2;
+			ust2 = (FOV * lines[i].y2 * oz2) + WIDTH / 2;
+			zb1 = (viewHeight * oz1) + HEIGHT / 2;
+			zb2 = (viewHeight * oz2) + HEIGHT / 2;
+			sLines[i] = (struct screen_line){
+				ust1, zb1, ust2, zb2, oz1, oz2,
+				lines[i].u1 * oz1, lines[i].v1 * oz1, lines[i].u2 * oz2, lines[i].v2 * oz2};
+
+			yless = zb2 < yStart;
+			ymore = zb2 > yEnd;
+
+			if (yless && abs(zb1 - zb2) > 0)
+			{
+				yStart = zb2;
+				if (!reverse)
+					startLine = i;
+			}
+			if (ymore && abs(zb1 - zb2) > 0)
+			{
+				yEnd = zb2;
+				if (reverse)
+					startLine = i;
+			}
+		}
+		else
+		{
+			sLines[i] = (struct screen_line){0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1};
+		}
+	}
+	int done = 0, lineAfter, lineBefore;
+
+	lineAfter = (startLine + 1) > 3 ? 0 : startLine + 1;
+	if (abs(sLines[lineAfter].sy1 - sLines[lineAfter].sy2) == 0)
+	{
+		lineAfter = (lineAfter + 1) > 3 ? 0 : lineAfter + 1;
+	}
+	lineBefore = (startLine - 1) < 0 ? 3 : startLine - 1;
+	int count = 0;
+	do
+	{
+		struct screen_line currentLine = sLines[startLine],
+						   oppositeLine = sLines[lineAfter];
+		int startY, endY, xStart, xEnd, oStartY, oEndY, oStartX, oEndX;
+		float startUoz, endUoz, startVoz, endVoz, startOZ, endOZ,
+			oStartUoz, oEndUoz, oStartVoz, oEndVoz;
+		startY = currentLine.sy2;
+		endY = currentLine.sy1;
+		xStart = currentLine.sx2;
+		xEnd = currentLine.sx1;
+		startUoz = currentLine.uoz2;
+		endUoz = currentLine.uoz1;
+		startVoz = currentLine.voz2;
+		endVoz = currentLine.voz1;
+		startOZ = currentLine.oz2;
+		endOZ = currentLine.oz1;
+		oStartY = oppositeLine.sy1;
+		oEndY = oppositeLine.sy2;
+		oStartX = oppositeLine.sx1;
+		oEndX = oppositeLine.sx2;
+		oStartUoz = oppositeLine.uoz1;
+		oEndUoz = oppositeLine.uoz2;
+		oStartVoz = oppositeLine.voz1;
+		oEndVoz = oppositeLine.voz2;
+
+		if (abs(endY - startY) < 15000)
+			for (int y = startY; reverse ? y >= endY : y <= endY; reverse ? y-- : y++)
+			{
+				if (y >= 0 && y < HEIGHT)
+				{
+					float ts1 = (y - startY) / (float)(endY - startY),
+						  ts2 = (y - oStartY) / (float)(oEndY - oStartY);
+					int x1 = xStart * (1 - ts1) + xEnd * ts1,
+						x2 = oStartX * (1 - ts2) + oEndX * ts2;
+					float oz = startOZ * (1 - ts1) + endOZ * ts1,
+						  uoz1 = startUoz * (1 - ts1) + endUoz * ts1,
+						  uoz2 = oStartUoz * (1 - ts2) + oEndUoz * ts2,
+						  voz1 = startVoz * (1 - ts1) + endVoz * ts1,
+						  voz2 = oStartVoz * (1 - ts2) + oEndVoz * ts2;
+					if (!(x2 > 8000 || x1 > 8000 || x2 < -8000 || x1 < -8000 || abs(x2 - x1) > 16000))
+					{
+						int xDir = x1 > x2;
+						int startX = xDir ? x2 : x1,
+							endX = xDir ? x1 : x2;
+						float startU = xDir ? uoz2 : uoz1,
+							  endU = xDir ? uoz1 : uoz2,
+							  startV = xDir ? voz2 : voz1,
+							  endV = xDir ? voz1 : voz2;
+						for (int x = startX; x <= endX; x++)
+						{
+							if (x >= 0 && x < WIDTH && x > currentPortal->x1 && x < currentPortal->x2)
+							{
+								if (y > yt[x] && y < yb[x])
+								{
+									float t = (x - startX) / (float)(endX - startX);
+									int u = Clamp(texture->width - 1, 0, ((startU * (1 - t) + endU * t) / oz));
+									int v = Clamp(texture->height - 1, 0, ((startV * (1 - t) + endV * t) / oz));
+									float lightlevel = ((oz * 2) > 1 ? 1 : oz * 2) * sctrLightLevel;
+									int index = (u + v * texture->width) * texture->components;
+									SDL_SetRenderDrawColor(renderer, texture->pixels[index] * lightlevel, texture->pixels[index + 1] * lightlevel, texture->pixels[index + 2] * lightlevel, 0x00);
+									SDL_RenderDrawPoint(renderer, x, y);
+								}
+							}
+						}
+					}
+
+					if (ts2 == 1 && y != yEnd)
+					{
+						lineAfter = (lineAfter + 1) > 3 ? 0 : lineAfter + 1;
+						oppositeLine = sLines[lineAfter];
+						oStartY = oppositeLine.sy1;
+						oEndY = oppositeLine.sy2;
+						oStartX = oppositeLine.sx1;
+						oEndX = oppositeLine.sx2;
+						oStartUoz = oppositeLine.uoz1;
+						oEndUoz = oppositeLine.uoz2;
+						oStartVoz = oppositeLine.voz1;
+						oEndVoz = oppositeLine.voz2;
+					}
+				}
+				if (reverse ? (y == yStart) : (y == yEnd))
+				{
+					done = 1;
+				}
+			}
+		count++;
+		if (!done)
+			startLine = lineBefore;
+	} while (!done && count != 2);
+}
+
+static void SegmentAndDrawFlats(struct sector *sctr, int ph, struct portal *currentPortal, int yTopLimit[WIDTH], int yBottomLimit[WIDTH])
+{
+	float segmentSize = 1.75;
+	float xDiff = sctr->t3.x - sctr->t1.x,
+		  yDiff = sctr->t3.y - sctr->t1.y;
+	int xSegments = 1, ySegments = 1;
+	if ((xDiff / segmentSize) > 1)
+	{
+		xSegments = (int)ceil(xDiff / segmentSize);
+	}
+	if ((yDiff / segmentSize) > 1)
+	{
+		ySegments = (int)ceil(yDiff / segmentSize);
+	}
+	struct poly *blocks = NULL;
+	int blockCount = 0;
+	for (int i = 0; i < xSegments; i++)
+	{
+		for (int j = 0; j < ySegments; j++)
+		{
+			blocks = realloc(blocks, ++blockCount * sizeof(*blocks));
+			blocks[blockCount - 1].t1 = (struct xy){sctr->t1.x + (i * segmentSize), sctr->t1.y + (j * segmentSize)};
+			blocks[blockCount - 1].t2 = (struct xy){sctr->t1.x + ((i + 1) * segmentSize), sctr->t1.y + (j * segmentSize)};
+			blocks[blockCount - 1].t3 = (struct xy){sctr->t1.x + ((i + 1) * segmentSize), sctr->t1.y + ((j + 1) * segmentSize)};
+			blocks[blockCount - 1].t4 = (struct xy){sctr->t1.x + (i * segmentSize), sctr->t1.y + ((j + 1) * segmentSize)};
+		}
+	}
+	if (sctr->floorTexture > 0)
+	{
+		for (int i = 0; i < blockCount; i++)
+		{
+			RenderFlat(blocks[i].t1, blocks[i].t2, blocks[i].t3, blocks[i].t4, sctr->floorTexture, ph - sctr->floorheight, sctr->lightlevel, currentPortal, yTopLimit, yBottomLimit, 0);
+		}
+		// RenderFlat(sctr->t1, sctr->t2, sctr->t3, sctr->t4, sctr->floorTexture, ph - sctr->floorheight, sctr->lightlevel, currentPortal, yTopLimit, yBottomLimit, 0);
+	}
+	if (sctr->ceilingTexture > 0)
+	{
+		for (int i = 0; i < blockCount; i++)
+		{
+			RenderFlat(blocks[i].t1, blocks[i].t2, blocks[i].t3, blocks[i].t4, sctr->ceilingTexture, -(sctr->ceilingheight - ph), sctr->lightlevel, currentPortal, yTopLimit, yBottomLimit, 1);
+		}
+		// RenderFlat(sctr->t1, sctr->t2, sctr->t3, sctr->t4, sctr->ceilingTexture, -(sctr->ceilingheight - ph), sctr->lightlevel, currentPortal, yTopLimit, yBottomLimit, 1);
+	}
+	free(blocks);
+}
 
 static void RenderWalls()
 {
@@ -29,10 +242,7 @@ static void RenderWalls()
 	{
 		renderedSectors[i] = 0;
 	}
-	struct portal
-	{
-		int sectorNo, x1, x2;
-	} queue[maxSectors];
+	struct portal queue[maxSectors];
 
 	// Whole screen is the initial portal.
 	*queue = (struct portal){player.sector, 0, WIDTH - 1};
@@ -45,6 +255,10 @@ static void RenderWalls()
 		current += 1;
 		struct portal *currentPortal = queue + current;
 		struct sector *sctr = &sectors[currentPortal->sectorNo - 1];
+		if ((sctr->floorTexture > 0 || sctr->ceilingTexture > 0) && showTextures)
+		{
+			SegmentAndDrawFlats(sctr, ph, currentPortal, yTopLimit, yBottomLimit);
+		}
 		for (int i = 0; i < sctr->lineNum; i++)
 		{
 			// First Vector rotation of the lines around the player.
@@ -63,13 +277,13 @@ static void RenderWalls()
 				int s1, s2, us1, us2, tex1, texw2, texc2, texf2, zt1, zb1, zt2, zb2, stepy1, stepy2, ceily1, ceily2;
 				float z1, z2;
 				// Wall X transformation
-				s1 = (500 * *(ptr + 1) / *ptr) + WIDTH / 2;
-				s2 = (500 * *(ptr + 3) / *(ptr + 2)) + WIDTH / 2;
-				us1 = (500 * roty1 / rotx1) + WIDTH / 2;
-				us2 = (500 * roty2 / rotx2) + WIDTH / 2;
+				s1 = (FOV * *(ptr + 1) / *ptr) + WIDTH / 2;
+				s2 = (FOV * *(ptr + 3) / *(ptr + 2)) + WIDTH / 2;
+				us1 = (FOV * roty1 / rotx1) + WIDTH / 2;
+				us2 = (FOV * roty2 / rotx2) + WIDTH / 2;
 				z1 = 1 / rotx1;
 				z2 = 1 / rotx2;
-				tex1 = 0 * z1;
+				tex1 = 0;
 				texw2 = sctr->lineDef[i].wallTexture > -1 ? (textures[sctr->lineDef[i].wallTexture - 1].width - 1) * z2 : 0;
 				texc2 = sctr->lineDef[i].ceilingTexture > -1 ? (textures[sctr->lineDef[i].ceilingTexture - 1].width - 1) * z2 : 0;
 				texf2 = sctr->lineDef[i].floorTexture > -1 ? (textures[sctr->lineDef[i].floorTexture - 1].width - 1) * z2 : 0;
@@ -104,9 +318,14 @@ static void RenderWalls()
 						float dy = *(ptr + 1) * (1 - t) + *(ptr + 3) * t;
 						float distance = dx * dx + dy * dy;
 						// // Draw roofs and floors.
-						RenderLine(x, yTopLimit[x], yt, yTop, yBottom, 0x78, 0x78, 0x78, distance, sctr->lightlevel, -1, 1, 0, -1, current);
-						RenderLine(x, yb, yBottomLimit[x], yTop, yBottom, 0x79, 0x79, 0x79, distance, sctr->lightlevel, -1, 0, 1, -1, current);
-
+						if (sctr->ceilingTexture == -1 || !showTextures)
+						{
+							RenderLine(x, yTopLimit[x], yt, yTop, yBottom, 0x78, 0x78, 0x78, distance, sctr->lightlevel, -1, 1, 0, -1, current);
+						}
+						if (sctr->floorTexture == -1 || !showTextures)
+						{
+							RenderLine(x, yb, yBottomLimit[x], yTop, yBottom, 0x79, 0x79, 0x79, distance, sctr->lightlevel, -1, 0, 1, -1, current);
+						}
 						if (sctr->lineDef[i].adjacent > -1)
 						{
 							if (sectors[sctr->lineDef[i].adjacent - 1].floorheight > sctr->floorheight)
@@ -156,7 +375,6 @@ static void RenderWalls()
 				}
 			}
 		}
-		// ++renderedSectors[currentPortal->sectorNo];
 	} while (current != end);
 }
 

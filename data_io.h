@@ -13,8 +13,8 @@ extern struct player player;
 extern float screenLightMap[];
 
 void LoadMapFile(char *);
+void LoadObject(char *, float, float, int, struct object *);
 void LoadTexture(char *);
-void LoadScreenLightMap();
 void UnloadData();
 
 #endif
