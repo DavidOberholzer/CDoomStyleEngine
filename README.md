@@ -32,16 +32,18 @@ LINE
 **adjacentsectorindex:** The index of the sector connected to this line, thus this wall will act as a portal to this adjacent sector.\
 **wallTextureindex:** The index of the texture to be used for the middle wall section (used only if not a portal for now).\
 **ceilingTextureindex:** The index of the texture to be used for the roof wall section (used only if a portal).\
-**stepTextureindex:** The index of the texture to be used for the step wall section (used only if a portal).\
+**stepTextureindex:** The index of the texture to be used for the step wall section (used only if a portal).
 
 SECTOR
 ------
-`sector _floorheight_ _ceilingheight_ _lightlevel_ _sectorlines_`
+`sector _floorheight_ _ceilingheight_ _lightlevel_ _floorTextureindex_ _ceilingTextureindex_ _sectorlines_`
 
 **floorheight:** The height of the sector floor.\
 **ceilingheight:** The height of the sector ceiling.\
 **lightlevel:** The light level of the sector (0-1).\
-**sectorlines:** A list of line indexes, seperated by spaces, that belong to this sector. ie. `2 3 4 5 6`.\
+**floorTextureindex:** The index of the floor texture to be used.\
+**ceilingTextureindex:** The index of the ceiling texture to be used.\
+**sectorlines:** A list of line indexes, seperated by spaces, that belong to this sector. ie. `2 3 4 5 6`.
 
 PLAYER
 ------
@@ -49,13 +51,13 @@ PLAYER
 
 **x1, y1:** Starting coordinates.\
 **angle:** Starting camera angle in relation to the world.\
-**startingsector:** The sector the player will start in.\
+**startingsector:** The sector the player will start in.
 
 TEXTURE
 -------
 `texture _filename_`
 
-**filename:** The name of the texture file stored in the `/textures` directory.\
+**filename:** The name of the texture file stored in the `/textures` directory.
 
 ## Textures
 
@@ -64,6 +66,6 @@ Textures are currently loaded in using `jpeglib`. Just used it for ease for now.
 
 ## Todos && Notes
 
-* Improve speed with textures present (seems slow to draw each pixel rather than lines.)
+* Improve floor and ceiling texture mapping speed. Quick implementation added for now to get working.
 * Improve head bob reverting to standard height.
 * Mouse support.
