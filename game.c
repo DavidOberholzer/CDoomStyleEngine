@@ -95,7 +95,7 @@ static void RenderFlat(struct xy t1, struct xy t2, struct xy t3, struct xy t4, i
 	{
 		struct screen_line currentLine = sLines[startLine],
 						   oppositeLine = sLines[lineAfter];
-		int startY, endY, xStart, xEnd, oStartY, oEndY, oStartX, oEndX;
+		int startY, endY, xStart, xEnd, oStartY, oEndY, oStartX, oEndX, loaded = 0;
 		float startUoz, endUoz, startVoz, endVoz, startOZ, endOZ,
 			oStartUoz, oEndUoz, oStartVoz, oEndVoz;
 		startY = currentLine.sy2;
@@ -108,14 +108,18 @@ static void RenderFlat(struct xy t1, struct xy t2, struct xy t3, struct xy t4, i
 		endVoz = currentLine.voz1;
 		startOZ = currentLine.oz2;
 		endOZ = currentLine.oz1;
-		oStartY = oppositeLine.sy1;
-		oEndY = oppositeLine.sy2;
-		oStartX = oppositeLine.sx1;
-		oEndX = oppositeLine.sx2;
-		oStartUoz = oppositeLine.uoz1;
-		oEndUoz = oppositeLine.uoz2;
-		oStartVoz = oppositeLine.voz1;
-		oEndVoz = oppositeLine.voz2;
+		if (!loaded)
+		{
+			oStartY = oppositeLine.sy1;
+			oEndY = oppositeLine.sy2;
+			oStartX = oppositeLine.sx1;
+			oEndX = oppositeLine.sx2;
+			oStartUoz = oppositeLine.uoz1;
+			oEndUoz = oppositeLine.uoz2;
+			oStartVoz = oppositeLine.voz1;
+			oEndVoz = oppositeLine.voz2;
+			loaded = 1;
+		}
 
 		if (abs(endY - startY) < 15000)
 			for (int y = startY; reverse ? y >= endY : y <= endY; reverse ? y-- : y++)
@@ -149,7 +153,7 @@ static void RenderFlat(struct xy t1, struct xy t2, struct xy t3, struct xy t4, i
 									float t = (x - startX) / (float)(endX - startX);
 									int u = Clamp(texture->width - 1, 0, ((startU * (1 - t) + endU * t) / oz));
 									int v = Clamp(texture->height - 1, 0, ((startV * (1 - t) + endV * t) / oz));
-									float lightlevel = ((oz * 2) > 1 ? 1 : oz * 2) * sctrLightLevel;
+									float lightlevel = ((oz) > 1 ? 1 : oz) * sctrLightLevel;
 									int index = (u + v * texture->width) * texture->components;
 									SDL_SetRenderDrawColor(renderer, texture->pixels[index] * lightlevel, texture->pixels[index + 1] * lightlevel, texture->pixels[index + 2] * lightlevel, 0x00);
 									SDL_RenderDrawPoint(renderer, x, y);
@@ -185,7 +189,7 @@ static void RenderFlat(struct xy t1, struct xy t2, struct xy t3, struct xy t4, i
 
 static void SegmentAndDrawFlats(struct sector *sctr, int ph, struct portal *currentPortal, int yTopLimit[WIDTH], int yBottomLimit[WIDTH])
 {
-	float segmentSize = 1.75;
+	float segmentSize = 0.75;
 	float xDiff = sctr->t3.x - sctr->t1.x,
 		  yDiff = sctr->t3.y - sctr->t1.y;
 	int xSegments = 1, ySegments = 1;
@@ -232,11 +236,13 @@ static void SegmentAndDrawFlats(struct sector *sctr, int ph, struct portal *curr
 static void RenderWalls()
 {
 	int maxSectors = 16;
-	int yTopLimit[WIDTH], yBottomLimit[WIDTH], renderedSectors[numSectors];
+	int yTopLimit[WIDTH], yBottomLimit[WIDTH], yTopTemp[WIDTH], yBottomTemp[WIDTH], renderedSectors[numSectors];
 	for (int i = 0; i < WIDTH; i++)
 	{
 		yTopLimit[i] = 0;
+		yTopTemp[i] = 0;
 		yBottomLimit[i] = HEIGHT - 1;
+		yBottomTemp[i] = HEIGHT - 1;
 	}
 	for (int i = 0; i < numSectors; i++)
 	{
@@ -255,6 +261,7 @@ static void RenderWalls()
 		current += 1;
 		struct portal *currentPortal = queue + current;
 		struct sector *sctr = &sectors[currentPortal->sectorNo - 1];
+		// Draw all roofs and floors if texture are there.
 		if ((sctr->floorTexture > 0 || sctr->ceilingTexture > 0) && showTextures)
 		{
 			SegmentAndDrawFlats(sctr, ph, currentPortal, yTopLimit, yBottomLimit);
@@ -312,19 +319,19 @@ static void RenderWalls()
 						float z = z1 * (1 - t2) + z2 * t2;
 						int yTop = zt1 * (1 - t) + zt2 * t + 0.5;	// +0.5 to remove jaggies.
 						int yBottom = zb1 * (1 - t) + zb2 * t + 0.5; // +0.5 to remove jaggies.
-						int yt = Clamp(yBottomLimit[x], yTopLimit[x], yTop);
-						int yb = Clamp(yBottomLimit[x], yTopLimit[x], yBottom);
+						int yt = Clamp(yBottomTemp[x], yTopTemp[x], yTop);
+						int yb = Clamp(yBottomTemp[x], yTopTemp[x], yBottom);
 						float dx = *ptr * (1 - t) + *(ptr + 2) * t;
 						float dy = *(ptr + 1) * (1 - t) + *(ptr + 3) * t;
 						float distance = dx * dx + dy * dy;
 						// // Draw roofs and floors.
 						if (sctr->ceilingTexture == -1 || !showTextures)
 						{
-							RenderLine(x, yTopLimit[x], yt, yTop, yBottom, 0x78, 0x78, 0x78, distance, sctr->lightlevel, -1, 1, 0, -1, current);
+							RenderLine(x, yTopTemp[x], yt, yTop, yBottom, 0x78, 0x78, 0x78, distance, sctr->lightlevel, -1, 1, 0, -1, current);
 						}
 						if (sctr->floorTexture == -1 || !showTextures)
 						{
-							RenderLine(x, yb, yBottomLimit[x], yTop, yBottom, 0x79, 0x79, 0x79, distance, sctr->lightlevel, -1, 0, 1, -1, current);
+							RenderLine(x, yb, yBottomTemp[x], yTop, yBottom, 0x79, 0x79, 0x79, distance, sctr->lightlevel, -1, 0, 1, -1, current);
 						}
 						if (sctr->lineDef[i].adjacent > -1)
 						{
@@ -334,13 +341,13 @@ static void RenderWalls()
 								float tex = tex1 * (1 - t2) + texf2 * t2;
 								int u = tex / z;
 								int realStepY = stepy1 * (1 - t) + stepy2 * t + 0.5;
-								int stepY = Clamp(yBottomLimit[x], yTopLimit[x], realStepY); // +0.5 to remove jaggies.
+								int stepY = Clamp(yBottomTemp[x], yTopTemp[x], realStepY); // +0.5 to remove jaggies.
 								RenderLine(x, stepY, yb, realStepY, yBottom, 0x37, 0xcd, 0xc1, distance, sctr->lightlevel, u, 0, 0, sctr->lineDef[i].floorTexture, current);
-								yBottomLimit[x] = stepY;
+								yBottomTemp[x] = stepY;
 							}
 							else
 							{
-								yBottomLimit[x] = yb;
+								yBottomTemp[x] = yb;
 							}
 
 							if (sectors[sctr->lineDef[i].adjacent - 1].ceilingheight < sctr->ceilingheight)
@@ -349,13 +356,13 @@ static void RenderWalls()
 								float tex = tex1 * (1 - t2) + texc2 * t2;
 								int u = tex / z;
 								int realCeilY = ceily1 * (1 - t) + ceily2 * t + 0.5;
-								int ceilY = Clamp(yBottomLimit[x], yTopLimit[x], realCeilY); // +0.5 to remove jaggies.
+								int ceilY = Clamp(yBottomTemp[x], yTopTemp[x], realCeilY); // +0.5 to remove jaggies.
 								RenderLine(x, yt, ceilY, yTop, realCeilY, 0xa7, 0x37, 0xcd, distance, sctr->lightlevel, u, 0, 0, sctr->lineDef[i].ceilingTexture, current);
-								yTopLimit[x] = ceilY;
+								yTopTemp[x] = ceilY;
 							}
 							else
 							{
-								yTopLimit[x] = yt;
+								yTopTemp[x] = yt;
 							}
 						}
 						else
@@ -374,6 +381,52 @@ static void RenderWalls()
 					}
 				}
 			}
+		}
+		for (int i = 0; i < sctr->objectNum; i++)
+		{
+			struct object obj = sctr->objectDef[i];
+			float rotx, roty, lightlevel;
+			rotx = (obj.x - player.position.x) * cos(player.angle) + (obj.y - player.position.y) * sin(player.angle);
+			roty = (obj.y - player.position.y) * cos(player.angle) - (obj.x - player.position.x) * sin(player.angle);
+			if (rotx > 0)
+			{
+				float oz;
+				int sx, sy, x1, x2, fy, tx, ty;
+				sx = (FOV * roty / rotx) + WIDTH / 2;
+				sy = ((ph - sctr->floorheight) / rotx) + HEIGHT / 2;
+				oz = 1 / rotx;
+				lightlevel = ((oz) > 1 ? 1 : oz) * sctr->lightlevel;
+				tx = obj.width * oz / 2;
+				ty = obj.height * oz;
+				fy = sy - ty;
+				x1 = sx - tx;
+				x2 = sx + tx;
+				for (int y = fy; y <= sy; y++)
+				{
+					float t1 = (y - fy) / (float)(sy - fy);
+					int v = 0 * (1 - t1) + obj.height * t1;
+					for (int x = x1; x <= x2; x++)
+					{
+						if (y > yTopLimit[x] && y < yBottomLimit[x] && x > 0 && x < WIDTH && x > currentPortal->x1 && x < currentPortal->x2)
+						{
+							float t2 = (x - x1) / (float)(x2 - x1);
+							int u = 0 * (1 - t2) + obj.width * t2;
+							int index = (u + v * obj.width) * obj.components;
+							int r = obj.pixels[index], g = obj.pixels[index + 1], b = obj.pixels[index + 2];
+							if (r != 0xff && g != 0x00 && b != 0xaf)
+							{
+								SDL_SetRenderDrawColor(renderer, obj.pixels[index] * lightlevel, obj.pixels[index + 1] * lightlevel, obj.pixels[index + 2] * lightlevel, 0x00);
+								SDL_RenderDrawPoint(renderer, x, y);
+							}
+						}
+					}
+				}
+			}
+		}
+		for (int i = 0; i < WIDTH; i++)
+		{
+			yTopLimit[i] = yTopTemp[i];
+			yBottomLimit[i] = yBottomTemp[i];
 		}
 	} while (current != end);
 }

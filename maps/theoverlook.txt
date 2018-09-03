@@ -46,12 +46,12 @@ line 5 12.5 11 12.5 x 1 x x
 object 4.5 12.5 1 torch.jpeg
 
 sector 0 300 0.9 4 5    1 2 3 4 5
-sector 20 200 0.8 4 5   6 7 8 9
-sector 30 175 0.7 4 5   10 11 12 13
-sector 50 150 0.6 4 5   14 15 16 17
-sector 40 200 0.5 4 5   18 19 20 21
-sector 60 150 0.4 4 5   22 23 24 25 26 27 28
-sector 80 175 0.6 4 5   29 30 31 32
+sector 20 200 0.8 6 5   6 7 8 9
+sector 30 175 0.7 6 5   10 11 12 13
+sector 50 150 0.6 6 5   14 15 16 17
+sector 40 200 0.5 6 5   18 19 20 21
+sector 60 150 0.4 6 5   22 23 24 25 26 27 28
+sector 80 175 0.6 6 5   29 30 31 32
 sector 100 250 0.8 4 5  33 34 35 36 37
 
 player 3.5 12.5 0 1
@@ -61,3 +61,4 @@ texture RoofWall1.jpeg
 texture StepWall1.jpeg
 texture floor1.jpeg
 texture roof1.jpeg
+texture floor2.jpeg

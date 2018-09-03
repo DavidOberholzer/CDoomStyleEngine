@@ -9,10 +9,10 @@ line 5 2.5 10 2.5 x 1 x x
 line 10 2.5 10 5 x 1 x x
 line 10 5 5 5 x 1 x x
 
-object 4.5 12.5 1 torch.jpeg
+object 4.5 1 1 torch.jpeg
 
-sector 0 300 1 4 5       1 2 3 4 5
-sector 10 300 0.5 4 5    6 7 8 9
+sector 0 300 1 6 5       1 2 3 4 5
+sector 10 300 0.5 6 5    6 7 8 9
 
 player 2.5 2.5 0 1
 
@@ -21,3 +21,4 @@ texture RoofWall1.jpeg
 texture StepWall1.jpeg
 texture floor1.jpeg
 texture roof1.jpeg
+texture floor2.jpeg
