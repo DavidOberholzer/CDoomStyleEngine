@@ -160,64 +160,86 @@ void LoadMapFile(char *filename)
     free(objects);
 }
 
-void LoadObject(char *filename, float x, float y, int sector, struct object *object)
+void LoadPCXFile(char *filename, struct texture *texture)
 {
-    char dir[256] = "objects/";
-    strcat(dir, filename);
-    object->x = x;
-    object->y = y;
-    object->sector = sector;
-    struct jpeg_decompress_struct cinfo;
-    struct my_error_mgr jerr;
-    FILE *infile;
-    JSAMPARRAY buffer;
-    int buffer_height = 1;
-    int row_stride;
+    FILE *filePtr;
+    unsigned char byte;
+    struct pcx_header headerInfo;
 
-    if ((infile = fopen(dir, "rb")) == NULL)
+    filePtr = fopen(filename, "rb");
+    if (filePtr == NULL)
     {
-        printf("Can't open %s\n", filename);
+        printf("Cannot open file %s\n", filename);
         exit(1);
     }
 
-    // Override error routine
-    cinfo.err = jpeg_std_error(&jerr.pub);
-    jerr.pub.error_exit = my_error_exit;
-    if (setjmp(jerr.setjmp_buffer))
-    {
-        jpeg_destroy_decompress(&cinfo);
-        fclose(infile);
-        printf("JPEG read error!");
+    fread(&headerInfo, sizeof(struct pcx_header), 1, filePtr);
+    if (headerInfo.manufacturer != 10) {
+        printf("%s File not PCX\n", filename);
         exit(1);
     }
-    jpeg_create_decompress(&cinfo);
-    jpeg_stdio_src(&cinfo, infile);
-
-    (void)jpeg_read_header(&cinfo, TRUE);
-    (void)jpeg_start_decompress(&cinfo);
-
-    object->width = cinfo.output_width;
-    object->height = cinfo.output_height;
-    object->components = cinfo.output_components;
-
-    row_stride = object->width * object->components;
-    buffer = (JSAMPARRAY)malloc(sizeof(JSAMPROW) * buffer_height);
-    buffer[0] = (JSAMPROW)malloc(sizeof(JSAMPLE) * row_stride);
-
-    object->pixels = malloc(sizeof(unsigned char) * (object->width * object->height * object->components));
-    long counter = 0;
-    while (cinfo.output_scanline < cinfo.output_height)
+    int imageWidth = headerInfo.Xmax - headerInfo.Xmin + 1;
+    int imageHeight = headerInfo.YMax - headerInfo.Ymin + 1;
+    texture->width = imageWidth;
+    texture->height = imageHeight;
+    texture->pixels = malloc(sizeof(struct pixel *) * imageWidth * imageHeight);
+    long int scanLineLength = headerInfo.noBitPlanes * headerInfo.bytesPerRow;
+    int paddingPerLine = (scanLineLength * (8 / headerInfo.bpppbp)) - imageWidth;
+    int currentWidth = 0, currentHeight = 0,
+        currentColour = 0, index = 0;
+    do
     {
-        (void)jpeg_read_scanlines(&cinfo, buffer, 1);
-        memcpy(object->pixels + counter, buffer[0], row_stride);
-        counter += row_stride;
-    }
-
-    (void)jpeg_finish_decompress(&cinfo);
-    jpeg_destroy_decompress(&cinfo);
-    fclose(infile);
-    free(buffer);
-    printf("Successfully loaded object %s\n", filename);
+        if (currentWidth / (imageWidth - 1))
+        {
+            if (currentColour == 2)
+            {
+                currentHeight++;
+                currentWidth = 0;
+                currentColour = 0;
+            }
+            else
+            {
+                currentColour++;
+                currentWidth = 0;
+            }
+        }
+        fread(&byte, sizeof(BYTE), 1, filePtr);
+        unsigned char runValue;
+        int runCount;
+        if ((byte & 0xc0) == 0xc0)
+        {
+            runCount = byte & 0x3f;
+            fread(&runValue, sizeof(BYTE), 1, filePtr);
+        }
+        else
+        {
+            runCount = 1;
+            runValue = byte;
+        }
+        for (int j = 0; j < runCount; j++)
+        {
+            index = currentHeight * imageWidth + currentWidth;
+            if (index >= imageHeight * imageWidth)
+                continue;
+            switch (currentColour)
+            {
+            case 0:
+                (texture->pixels + index)->R = runValue;
+                break;
+            case 1:
+                (texture->pixels + index)->G = runValue;
+                break;
+            case 2:
+                (texture->pixels + index)->B = runValue;
+                break;
+            default:
+                // This should never happen...
+                exit(1);
+            }
+            currentWidth++;
+        }
+    } while (index < imageHeight * imageWidth);
+    fclose(filePtr);
 }
 
 void LoadTexture(char *filename)
@@ -226,62 +248,33 @@ void LoadTexture(char *filename)
     strcat(dir, filename);
     textures = realloc(textures, ++numTextures * sizeof(*textures));
     struct texture *texture = &textures[numTextures - 1];
-    struct jpeg_decompress_struct cinfo;
-    struct my_error_mgr jerr;
-    FILE *infile;
-    JSAMPARRAY buffer;
-    int buffer_height = 1;
-    int row_stride;
+    LoadPCXFile(dir, texture);
+    printf("Successfully Loaded texture %s...\n", filename);
+}
 
-    if ((infile = fopen(dir, "rb")) == NULL)
-    {
-        printf("Can't open %s\n", filename);
-        exit(1);
-    }
-
-    // Override error routine
-    cinfo.err = jpeg_std_error(&jerr.pub);
-    jerr.pub.error_exit = my_error_exit;
-    if (setjmp(jerr.setjmp_buffer))
-    {
-        jpeg_destroy_decompress(&cinfo);
-        fclose(infile);
-        printf("JPEG read error!");
-        exit(1);
-    }
-    jpeg_create_decompress(&cinfo);
-    jpeg_stdio_src(&cinfo, infile);
-
-    (void)jpeg_read_header(&cinfo, TRUE);
-    (void)jpeg_start_decompress(&cinfo);
-
-    texture->width = cinfo.output_width;
-    texture->height = cinfo.output_height;
-    texture->components = cinfo.output_components;
-
-    row_stride = texture->width * texture->components;
-    buffer = (JSAMPARRAY)malloc(sizeof(JSAMPROW) * buffer_height);
-    buffer[0] = (JSAMPROW)malloc(sizeof(JSAMPLE) * row_stride);
-
-    texture->pixels = malloc(sizeof(unsigned char) * (texture->width * texture->height * texture->components));
-    long counter = 0;
-    while (cinfo.output_scanline < cinfo.output_height)
-    {
-        (void)jpeg_read_scanlines(&cinfo, buffer, 1);
-        memcpy(texture->pixels + counter, buffer[0], row_stride);
-        counter += row_stride;
-    }
-
-    (void)jpeg_finish_decompress(&cinfo);
-    jpeg_destroy_decompress(&cinfo);
-    fclose(infile);
-    free(buffer);
-    printf("Successfully loaded texture %s\n", filename);
+void LoadObject(char *filename, float x, float y, int sector, struct object *object)
+{
+    char dir[256] = "objects/";
+    strcat(dir, filename);
+    object->x = x;
+    object->y = y;
+    object->sector = sector;
+    struct texture *texture;
+    texture = malloc(sizeof(struct texture *));
+    LoadPCXFile(dir, texture);
+    object->pixels = malloc(sizeof(*texture->pixels));
+    object->height = texture->height;
+    object->width = texture->width;
+    printf("Successfully Loaded object %s...\n", filename);
 }
 
 void UnloadData()
 {
     // Free up textures in memory
+    for (int a = 0; a < numTextures; a++)
+    {
+        free(textures[a].pixels);
+    }
     free(textures);
     textures = NULL;
     numTextures = 0;
@@ -289,8 +282,10 @@ void UnloadData()
     for (int a = 0; a < numSectors; a++)
     {
         free(sectors[a].lineDef);
+        free(sectors[a].objectDef);
     }
     free(sectors);
     sectors = NULL;
     numSectors = 0;
+    printf("Unloaded all data.\n");
 }

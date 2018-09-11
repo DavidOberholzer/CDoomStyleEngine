@@ -23,6 +23,6 @@ float *IntersectionPoint(float, float, float, float, float, float, float, float)
 
 float *ClipViewCone(float, float, float, float, float);
 
-struct poly_line GetPolyLine(float, float, float, float, int, int, int, int, float);
+struct poly_line GetPolyLine(float, float, float, float, int, int, int, int);
 
 #endif

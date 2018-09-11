@@ -4,7 +4,9 @@
 #include <SDL2/SDL.h>
 
 #define WIDTH 640
+#define WIDTHD2 WIDTH / 2
 #define HEIGHT 480
+#define HEIGHTD2 HEIGHT / 2
 #define PI 3.141592653589793238
 #define VIEWANGLE 5 * PI / 12
 

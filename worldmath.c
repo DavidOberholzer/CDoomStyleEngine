@@ -180,7 +180,7 @@ float *ClipViewCone(float x1, float y1, float x2, float y2, float angle)
     return ret;
 }
 
-struct poly_line GetPolyLine(float x1, float y1, float x2, float y2, int u1, int v1, int u2, int v2, float angle)
+struct poly_line GetPolyLine(float x1, float y1, float x2, float y2, int u1, int v1, int u2, int v2)
 {
     struct poly_line line;
     float *points;

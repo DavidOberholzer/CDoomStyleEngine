@@ -3,6 +3,7 @@
 #include "game.h"
 #include "graphics.h"
 #include "worldmath.h"
+#include "structures.h"
 
 int main()
 {

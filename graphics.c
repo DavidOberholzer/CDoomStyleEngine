@@ -15,7 +15,7 @@ void InitGraphics()
 {
 	SDL_Init(SDL_INIT_EVERYTHING);
 
-	window = SDL_CreateWindow("2.5d Engine David", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, WIDTH, HEIGHT, 0);
+	window = SDL_CreateWindow("2.5d Engine David", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, WIDTH, HEIGHT, SDL_WINDOW_FULLSCREEN);
 
 	if (window == NULL)
 	{
@@ -77,8 +77,8 @@ void RenderLine(int x, int y1, int y2, int yt, int yb, int R, int G, int B, floa
 				{
 					float dy = (y - yb) / (float)(yt - yb);
 					int height = dy * (texture->height - 1);
-					int index = (u + height * texture->width) * texture->components;
-					SDL_SetRenderDrawColor(renderer, texture->pixels[index] * light_level, texture->pixels[index + 1] * light_level, texture->pixels[index + 2] * light_level, 0x00);
+					int index = (u + height * texture->width);
+					SDL_SetRenderDrawColor(renderer, texture->pixels[index].R * light_level, texture->pixels[index].G * light_level, texture->pixels[index].B * light_level, 0x00);
 					SDL_RenderDrawPoint(renderer, x, y);
 				}
 			}
