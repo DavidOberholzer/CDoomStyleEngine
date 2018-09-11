@@ -5,6 +5,7 @@
 #include "game.h"
 #include "graphics.h"
 #include "worldmath.h"
+#include "structures.h"
 
 #define MOVESPEED 0.05
 #define FOV 250
@@ -402,7 +403,7 @@ static void RenderWalls()
 			float rotx, roty, lightlevel;
 			rotx = (obj.x - player.position.x) * cos(player.angle) + (obj.y - player.position.y) * sin(player.angle);
 			roty = (obj.y - player.position.y) * cos(player.angle) - (obj.x - player.position.x) * sin(player.angle);
-			if (rotx > 0.2)
+			if (rotx > 0.05)
 			{
 				float oz;
 				int sx, sy, x1, x2, fy, tx, ty;
@@ -425,7 +426,7 @@ static void RenderWalls()
 						{
 							float t2 = (x - x1) / (float)(x2 - x1);
 							int u = 0 * (1 - t2) + obj.width * t2;
-							int index = (u + v * (obj.width - 1));
+							int index = (u + v * (obj.width));
 							if (obj.pixels[index].R != 0xff && obj.pixels[index].G != 0x00 && obj.pixels[index].B != 0xaf)
 							{
 								SDL_SetRenderDrawColor(renderer, obj.pixels[index].R * lightlevel, obj.pixels[index].G * lightlevel, obj.pixels[index].B * lightlevel, 0x00);

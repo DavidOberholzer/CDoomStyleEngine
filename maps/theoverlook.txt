@@ -43,7 +43,7 @@ line 2.5 3 1 3 x 1 x x
 line 1 3 1 2.5 1 x 2 3
 line 1 2.5 2.2 2.5 x 1 x x
 
-object 0.9 0.5 1 torch.pcx
+object 0.9 0.75 1 torch.pcx
 
 sector 0 175 0.9 4 5    1 2 3 4 5
 sector 10 150 0.8 6 5   6 7 8 9

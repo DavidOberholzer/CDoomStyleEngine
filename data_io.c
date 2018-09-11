@@ -263,6 +263,7 @@ void LoadObject(char *filename, float x, float y, int sector, struct object *obj
     texture = malloc(sizeof(struct texture *));
     LoadPCXFile(dir, texture);
     object->pixels = malloc(sizeof(*texture->pixels));
+    object->pixels = texture->pixels;
     object->height = texture->height;
     object->width = texture->width;
     printf("Successfully Loaded object %s...\n", filename);
