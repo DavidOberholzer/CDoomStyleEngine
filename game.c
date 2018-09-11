@@ -396,47 +396,46 @@ static void RenderWalls()
 				}
 			}
 		}
-		// for (int i = 0; i < sctr->objectNum; i++)
-		// {
-		// 	struct object obj = sctr->objectDef[i];
-		// 	float rotx, roty, lightlevel;
-		// 	rotx = (obj.x - player.position.x) * cos(player.angle) + (obj.y - player.position.y) * sin(player.angle);
-		// 	roty = (obj.y - player.position.y) * cos(player.angle) - (obj.x - player.position.x) * sin(player.angle);
-		// 	if (rotx > 0)
-		// 	{
-		// 		float oz;
-		// 		int sx, sy, x1, x2, fy, tx, ty;
-		// 		sx = (FOV * roty / rotx) + WIDTHD2;
-		// 		sy = ((ph - sctr->floorheight) / rotx) + HEIGHTD2;
-		// 		oz = 1 / rotx;
-		// 		lightlevel = ((oz) > 1 ? 1 : oz) * sctr->lightlevel;
-		// 		tx = obj.width * oz / 2;
-		// 		ty = obj.height * oz;
-		// 		fy = sy - ty;
-		// 		x1 = sx - tx;
-		// 		x2 = sx + tx;
-		// 		for (int y = fy; y <= sy; y++)
-		// 		{
-		// 			float t1 = (y - fy) / (float)(sy - fy);
-		// 			int v = 0 * (1 - t1) + obj.height * t1;
-		// 			for (int x = x1; x <= x2; x++)
-		// 			{
-		// 				if (y > yTopLimit[x] && y < yBottomLimit[x] && x > 0 && x < WIDTH && x > currentPortal->x1 && x < currentPortal->x2)
-		// 				{
-		// 					float t2 = (x - x1) / (float)(x2 - x1);
-		// 					int u = 0 * (1 - t2) + obj.width * t2;
-		// 					int index = (u + v * obj.width) * obj.components;
-		// 					int r = obj.pixels[index], g = obj.pixels[index + 1], b = obj.pixels[index + 2];
-		// 					if (r != 0xff && g != 0x00 && b != 0xaf)
-		// 					{
-		// 						SDL_SetRenderDrawColor(renderer, obj.pixels[index] * lightlevel, obj.pixels[index + 1] * lightlevel, obj.pixels[index + 2] * lightlevel, 0x00);
-		// 						SDL_RenderDrawPoint(renderer, x, y);
-		// 					}
-		// 				}
-		// 			}
-		// 		}
-		// 	}
-		// }
+		for (int i = 0; i < sctr->objectNum; i++)
+		{
+			struct object obj = sctr->objectDef[i];
+			float rotx, roty, lightlevel;
+			rotx = (obj.x - player.position.x) * cos(player.angle) + (obj.y - player.position.y) * sin(player.angle);
+			roty = (obj.y - player.position.y) * cos(player.angle) - (obj.x - player.position.x) * sin(player.angle);
+			if (rotx > 0.2)
+			{
+				float oz;
+				int sx, sy, x1, x2, fy, tx, ty;
+				sx = (FOV * roty / rotx) + WIDTHD2;
+				sy = ((ph - sctr->floorheight) / rotx) + HEIGHTD2;
+				oz = 1 / rotx;
+				lightlevel = ((oz) > 1 ? 1 : oz) * sctr->lightlevel;
+				tx = obj.width * oz / 2;
+				ty = obj.height * oz;
+				fy = sy - ty;
+				x1 = sx - tx;
+				x2 = sx + tx;
+				for (int y = fy; y <= sy; y++)
+				{
+					float t1 = (y - fy) / (float)(sy - fy);
+					int v = 0 * (1 - t1) + (obj.height - 1) * t1;
+					for (int x = x1; x <= x2; x++)
+					{
+						if (y > yTopLimit[x] && y < yBottomLimit[x] && x > 0 && x < WIDTH && x > currentPortal->x1 && x < currentPortal->x2)
+						{
+							float t2 = (x - x1) / (float)(x2 - x1);
+							int u = 0 * (1 - t2) + obj.width * t2;
+							int index = (u + v * (obj.width - 1));
+							if (obj.pixels[index].R != 0xff && obj.pixels[index].G != 0x00 && obj.pixels[index].B != 0xaf)
+							{
+								SDL_SetRenderDrawColor(renderer, obj.pixels[index].R * lightlevel, obj.pixels[index].G * lightlevel, obj.pixels[index].B * lightlevel, 0x00);
+								SDL_RenderDrawPoint(renderer, x, y);
+							}
+						}
+					}
+				}
+			}
+		}
 		for (int i = 0; i < WIDTH; i++)
 		{
 			yTopLimit[i] = yTopTemp[i];
