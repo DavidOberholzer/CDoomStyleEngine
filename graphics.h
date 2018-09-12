@@ -2,6 +2,7 @@
 #define GRAPHICS_INCLUDED
 
 #include <SDL2/SDL.h>
+#include "structures.h"
 
 #define WIDTH 640
 #define WIDTHD2 WIDTH / 2
@@ -17,6 +18,7 @@ extern SDL_Surface *surface;
 void InitGraphics();
 void ClearFrame();
 void RenderLine(int, int, int, int, int, int, int, int, float, float, int, int, int, int, int);
+void DrawTexture(struct texture *);
 void PresentFrame();
 void TearDownGraphics();
 

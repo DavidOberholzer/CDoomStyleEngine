@@ -3,7 +3,6 @@
 #include <stdio.h>
 #include <string.h>
 #include <stddef.h>
-#include "jpeglib.h"
 // Local Includes
 #include "data_io.h"
 #include "worldmath.h"
@@ -15,22 +14,6 @@ int numTextures = 0;
 struct sector *sectors = NULL;
 int numSectors = 0;
 struct player player;
-
-// Custom Error Handler
-struct my_error_mgr
-{
-    struct jpeg_error_mgr pub;
-    jmp_buf setjmp_buffer;
-};
-
-typedef struct my_error_mgr *my_error_ptr;
-
-void my_error_exit(j_common_ptr cinfo)
-{
-    my_error_ptr myerr = (my_error_ptr)cinfo->err;
-    (*cinfo->err->output_message)(cinfo);
-    longjmp(myerr->setjmp_buffer, 1);
-}
 
 void LoadMapFile(char *filename)
 {
@@ -174,7 +157,8 @@ void LoadPCXFile(char *filename, struct texture *texture)
     }
 
     fread(&headerInfo, sizeof(struct pcx_header), 1, filePtr);
-    if (headerInfo.manufacturer != 10) {
+    if (headerInfo.manufacturer != 10)
+    {
         printf("%s File not PCX\n", filename);
         exit(1);
     }
@@ -183,62 +167,50 @@ void LoadPCXFile(char *filename, struct texture *texture)
     texture->width = imageWidth;
     texture->height = imageHeight;
     texture->pixels = malloc(sizeof(struct pixel *) * imageWidth * imageHeight);
-    long int scanLineLength = headerInfo.noBitPlanes * headerInfo.bytesPerRow;
-    int paddingPerLine = (scanLineLength * (8 / headerInfo.bpppbp)) - imageWidth;
-    int currentWidth = 0, currentHeight = 0,
-        currentColour = 0, index = 0;
-    do
+    int scanLineLength = headerInfo.noBitPlanes * headerInfo.bytesPerRow;
+    int colourPerLine = scanLineLength / 3;
+
+    for (int y = 0; y < imageHeight; y++)
     {
-        if (currentWidth / (imageWidth - 1))
+        int currentWidth = 0, currentColour = 0, index = 0, count = 0;
+        do
         {
-            if (currentColour == 2)
+            fread(&byte, sizeof(BYTE), 1, filePtr);
+            unsigned char runValue;
+            int runCount;
+            if ((byte & 0xc0) == 0xc0)
             {
-                currentHeight++;
-                currentWidth = 0;
-                currentColour = 0;
+                runCount = byte & 0x3f;
+                fread(&runValue, sizeof(BYTE), 1, filePtr);
             }
             else
             {
-                currentColour++;
-                currentWidth = 0;
+                runCount = 1;
+                runValue = byte;
             }
-        }
-        fread(&byte, sizeof(BYTE), 1, filePtr);
-        unsigned char runValue;
-        int runCount;
-        if ((byte & 0xc0) == 0xc0)
-        {
-            runCount = byte & 0x3f;
-            fread(&runValue, sizeof(BYTE), 1, filePtr);
-        }
-        else
-        {
-            runCount = 1;
-            runValue = byte;
-        }
-        for (int j = 0; j < runCount; j++)
-        {
-            index = currentHeight * imageWidth + currentWidth;
-            if (index >= imageHeight * imageWidth)
-                continue;
-            switch (currentColour)
+            for (; runCount && index < scanLineLength; runCount--, index++)
             {
-            case 0:
-                (texture->pixels + index)->R = runValue;
-                break;
-            case 1:
-                (texture->pixels + index)->G = runValue;
-                break;
-            case 2:
-                (texture->pixels + index)->B = runValue;
-                break;
-            default:
-                // This should never happen...
-                exit(1);
+                currentColour = (index) / imageWidth;
+                currentWidth = index - currentColour * imageWidth;
+                int pIndex = y * imageWidth + currentWidth;
+                switch (currentColour)
+                {
+                case 0:
+                    texture->pixels[pIndex].R = runValue;
+                    // printf("pixel: %d color: R index: %d\n", runValue, pIndex);
+                    break;
+                case 1:
+                    texture->pixels[pIndex].G = runValue;
+                    // printf("pixel: %d color: G index: %d\n", runValue, pIndex);
+                    break;
+                case 2:
+                    texture->pixels[pIndex].B = runValue;
+                    // printf("pixel: %d color: B index: %d\n", runValue, pIndex);
+                    break;
+                }
             }
-            currentWidth++;
-        }
-    } while (index < imageHeight * imageWidth);
+        } while (index < scanLineLength);
+    }
     fclose(filePtr);
 }
 

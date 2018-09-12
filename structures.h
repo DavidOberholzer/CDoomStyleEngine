@@ -42,12 +42,6 @@ struct line
 	signed char wallTexture, ceilingTexture, floorTexture;
 };
 
-// Render Portal
-struct portal
-{
-	int sectorNo, x1, x2;
-};
-
 // Player location
 struct player
 {
@@ -75,6 +69,13 @@ struct object
 	struct pixel *pixels;
 	int width, height, sector;
 	float x, y;
+};
+
+// Render Portal
+struct portal
+{
+	int sectorNo, x1, x2;
+	struct object *objects;
 };
 
 // Sectors

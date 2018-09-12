@@ -251,17 +251,13 @@ static void SegmentAndDrawFlats(struct sector *sctr, int ph, struct portal *curr
 static void RenderWalls()
 {
 	int maxSectors = 16;
-	int yTopLimit[WIDTH], yBottomLimit[WIDTH], yTopTemp[WIDTH], yBottomTemp[WIDTH], renderedSectors[numSectors];
+	int yTopLimit[WIDTH], yBottomLimit[WIDTH], yTopTemp[WIDTH], yBottomTemp[WIDTH];
 	for (int i = 0; i < WIDTH; i++)
 	{
 		yTopLimit[i] = 0;
 		yTopTemp[i] = 0;
 		yBottomLimit[i] = HEIGHT - 1;
 		yBottomTemp[i] = HEIGHT - 1;
-	}
-	for (int i = 0; i < numSectors; i++)
-	{
-		renderedSectors[i] = 0;
 	}
 	struct portal queue[maxSectors];
 

@@ -86,6 +86,19 @@ void RenderLine(int x, int y1, int y2, int yt, int yb, int R, int G, int B, floa
 	}
 }
 
+void DrawTexture(struct texture *texture)
+{
+	for (int y = 0; y < texture->height; y++)
+	{
+		for (int x = 0; x < texture->width; x++)
+		{
+			int index = y * texture->width + x;
+			SDL_SetRenderDrawColor(renderer, texture->pixels[index].R, texture->pixels[index].G, texture->pixels[index].B, 0x00);
+			SDL_RenderDrawPoint(renderer, x, y);
+		}
+	}
+}
+
 void PresentFrame()
 {
 	SDL_UpdateWindowSurface(window);
