@@ -28,6 +28,10 @@ float Min(float x, float y)
     return x <= y ? x : y;
 }
 
+float lineDistance(float x, float y) {
+    return sqrt(x * x + y * y);
+}
+
 int Clamp(int top, int bottom, float num)
 {
     return Max(Min(top, num), bottom);

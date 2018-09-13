@@ -43,7 +43,7 @@ static void RenderObject(struct object *obj, struct sector *sctr, int ph, int s1
 			int v = 0 * (1 - t1) + (texture->height - 1) * t1;
 			for (int x = x1; x <= x2; x++)
 			{
-				if (x > 0 && x < WIDTH && x > s1 && x < s2)
+				if (x > s1 && x < s2 && y > yt[x] && y < yb[x])
 				{
 					float t2 = (x - x1) / (float)(x2 - x1);
 					int u = 0 * (1 - t2) + texture->width * t2;
@@ -292,11 +292,13 @@ static void SegmentAndDrawFlats(struct sector *sctr, int ph, struct portal *curr
 static void RenderWalls()
 {
 	int maxSectors = 16;
-	int yTopLimit[WIDTH], yBottomLimit[WIDTH];
+	int yTopLimit[WIDTH], yBottomLimit[WIDTH], yTopSLimit[WIDTH], yBottomSLimit[WIDTH];
 	for (int i = 0; i < WIDTH; i++)
 	{
 		yTopLimit[i] = 0;
-		yBottomLimit[i] = HEIGHT - 1;
+		yBottomLimit[i] = HEIGHT - 101;
+		yTopSLimit[i] = 0;
+		yBottomSLimit[i] = HEIGHT - 101;
 	}
 	struct portal queue[maxSectors];
 	struct room *rooms = NULL;
@@ -458,23 +460,64 @@ static void RenderWalls()
 				}
 			}
 		}
-		// Render objects in portals found BACKWARDS
+		// Render objects in portals found BACKWARDS (for drawing over one another)
 		for (int i = roomCount - 1; i >= 0; i--)
 		{
 			struct room *room = &rooms[i];
+			struct objInfo objs[room->objectNum], temp;
+			for (int p = 0; p < room->objectNum; p++)
+			{
+				objs[p].d = lineDistance(room->objects[p].x - player.position.x,
+										 room->objects[p].y - player.position.y);
+				objs[p].loc = p;
+			}
+			for (int i = 0; i < room->objectNum; i++)
+			{
+				for (int j = i + 1; j < room->objectNum; j++)
+				{
+					if (objs[i].d < objs[j].d)
+					{
+						temp = objs[i];
+						objs[i] = objs[j];
+						objs[j] = temp;
+					}
+				}
+			}
 			for (int j = 0; j < room->objectNum; j++)
 			{
-				struct object *obj = &room->objects[j];
-				RenderObject(obj, sctr, ph, room->x1, room->x2, yTopLimit, yBottomLimit);
+				struct object *obj = &room->objects[objs[j].loc];
+				RenderObject(obj, sctr, ph, room->x1, room->x2, yTopSLimit, yBottomSLimit);
 			}
 		}
 	} while (current != end);
 	struct sector *sctr = &sectors[player.sector - 1];
 	// Render objects in current room
+	struct objInfo objs[sctr->objectNum], temp;
+	for (int p = 0; p < sctr->objectNum; p++)
+	{
+		objs[p].d = lineDistance(sctr->objectDef[p].x - player.position.x,
+								 sctr->objectDef[p].y - player.position.y);
+		objs[p].loc = p;
+	}
 	for (int i = 0; i < sctr->objectNum; i++)
 	{
-		struct object *obj = &sctr->objectDef[i];
-		RenderObject(obj, sctr, ph, 0, WIDTH - 1, yTopLimit, yBottomLimit);
+		for (int j = i + 1; j < sctr->objectNum; j++)
+		{
+			if (objs[i].d < objs[j].d)
+			{
+				temp = objs[i];
+				objs[i] = objs[j];
+				objs[j] = temp;
+			}
+		}
+	}
+	for (int i = 0; i < sctr->objectNum; i++)
+	{
+		struct object *obj = &sctr->objectDef[objs[i].loc];
+		RenderObject(obj, sctr, ph, 0, WIDTH - 1, yTopSLimit, yBottomSLimit);
+	}
+	for (int i = 0; i < roomCount; i++) {
+		free(rooms[i].objects);
 	}
 	free(rooms);
 }

@@ -71,6 +71,13 @@ struct object
 	float x, y;
 };
 
+// Object Info for sorting.
+struct objInfo 
+{
+	float d;
+	int loc;
+};
+
 // Render Portal
 struct portal
 {
@@ -83,7 +90,7 @@ struct room
 	int x1, x2;
 	struct object *objects;
 	int objectNum;
-	int yt[WIDTH], yb[WIDTH];
+	int *yt, *yb;
 };
 
 // Sectors
