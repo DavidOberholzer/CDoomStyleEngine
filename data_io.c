@@ -51,7 +51,10 @@ void LoadMapFile(char *filename)
             // Load in object
             case 'o':
                 sscanf(ptr += n, "%f%f%d%64s%n", &position.x, &position.y, &sector, tw, &n);
-                LoadObject(tw, position.x, position.y, sector, &obj);
+                obj.x = position.x;
+                obj.y = position.y;
+                obj.sector = sector;
+                obj.texture = tw[0] == 'x' ? -1 : atoi(tw);
                 objects = realloc(objects, ++objectCount * sizeof(*objects));
                 objects[objectCount - 1] = obj;
                 break;
@@ -222,23 +225,6 @@ void LoadTexture(char *filename)
     struct texture *texture = &textures[numTextures - 1];
     LoadPCXFile(dir, texture);
     printf("Successfully Loaded texture %s...\n", filename);
-}
-
-void LoadObject(char *filename, float x, float y, int sector, struct object *object)
-{
-    char dir[256] = "objects/";
-    strcat(dir, filename);
-    object->x = x;
-    object->y = y;
-    object->sector = sector;
-    struct texture *texture;
-    texture = malloc(sizeof(struct texture *));
-    LoadPCXFile(dir, texture);
-    object->pixels = malloc(sizeof(*texture->pixels));
-    object->pixels = texture->pixels;
-    object->height = texture->height;
-    object->width = texture->width;
-    printf("Successfully Loaded object %s...\n", filename);
 }
 
 void UnloadData()

@@ -2,6 +2,7 @@
 #define STRUCTURES_INCLUDED
 
 #include <stdlib.h>
+#include "graphics.h"
 
 typedef unsigned char BYTE;
 typedef short DBYTE;
@@ -66,8 +67,7 @@ struct texture
 // Object Structure
 struct object
 {
-	struct pixel *pixels;
-	int width, height, sector;
+	int sector, texture;
 	float x, y;
 };
 
@@ -75,7 +75,15 @@ struct object
 struct portal
 {
 	int sectorNo, x1, x2;
+};
+
+// Room to render objects etc.
+struct room
+{
+	int x1, x2;
 	struct object *objects;
+	int objectNum;
+	int yt[WIDTH], yb[WIDTH];
 };
 
 // Sectors

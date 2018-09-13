@@ -4,6 +4,7 @@ texture StepWall1.pcx
 texture floor1.pcx
 texture roof1.pcx
 texture floor2.pcx
+texture torch.pcx
 
 line 0 0 1 0 x 1 x x
 line 1 0 1 0.5 x 1 x x
@@ -16,8 +17,9 @@ line 1 0.5 2 0.5 x 1 x x
 line 2 0.5 2 1 x 1 x x
 line 2 1 1 1 x 1 x x
 
-object 0.25 0.25 1 torch.pcx
-object 0.75 0.25 1 torch.pcx
+object 0.25 0.25 1 7
+object 0.75 0.25 1 7
+object 1.75 0.75 2 7
 
 sector 0 100 1 6 5       1 2 3 4 5
 sector 10 120 0.5 6 5    6 7 8 9

@@ -18,6 +18,47 @@ static int fallHeight = 0;
 static int fallingVelocity = 0;
 int showTextures = 1;
 
+static void RenderObject(struct object *obj, struct sector *sctr, int ph, int s1, int s2, int yt[WIDTH], int yb[WIDTH])
+{
+	struct texture *texture = &textures[obj->texture - 1];
+	float rotx, roty, lightlevel;
+	rotx = (obj->x - player.position.x) * cos(player.angle) + (obj->y - player.position.y) * sin(player.angle);
+	roty = (obj->y - player.position.y) * cos(player.angle) - (obj->x - player.position.x) * sin(player.angle);
+	if (rotx > 0.05)
+	{
+		float oz;
+		int sx, sy, x1, x2, fy, tx, ty;
+		sx = (FOV * roty / rotx) + WIDTHD2;
+		sy = ((ph - sctr->floorheight) / rotx) + HEIGHTD2;
+		oz = 1 / rotx;
+		lightlevel = ((oz) > 1 ? 1 : oz) * sctr->lightlevel;
+		tx = texture->width * oz / 2;
+		ty = texture->height * oz;
+		fy = sy - ty;
+		x1 = sx - tx;
+		x2 = sx + tx;
+		for (int y = fy; y <= sy; y++)
+		{
+			float t1 = (y - fy) / (float)(sy - fy);
+			int v = 0 * (1 - t1) + (texture->height - 1) * t1;
+			for (int x = x1; x <= x2; x++)
+			{
+				if (x > 0 && x < WIDTH && x > s1 && x < s2)
+				{
+					float t2 = (x - x1) / (float)(x2 - x1);
+					int u = 0 * (1 - t2) + texture->width * t2;
+					int index = (u + v * (texture->width));
+					if (texture->pixels[index].R != 0xff && texture->pixels[index].G != 0x00 && texture->pixels[index].B != 0xaf)
+					{
+						SDL_SetRenderDrawColor(renderer, texture->pixels[index].R * lightlevel, texture->pixels[index].G * lightlevel, texture->pixels[index].B * lightlevel, 0x00);
+						SDL_RenderDrawPoint(renderer, x, y);
+					}
+				}
+			}
+		}
+	}
+}
+
 static void RenderFlatLoop(int startLine,
 						   struct screen_line sLines[4], struct texture *texture, struct portal *currentPortal,
 						   float sctrLightLevel, int yStart, int yEnd, int yt[WIDTH], int yb[WIDTH], int reverse)
@@ -251,15 +292,15 @@ static void SegmentAndDrawFlats(struct sector *sctr, int ph, struct portal *curr
 static void RenderWalls()
 {
 	int maxSectors = 16;
-	int yTopLimit[WIDTH], yBottomLimit[WIDTH], yTopTemp[WIDTH], yBottomTemp[WIDTH];
+	int yTopLimit[WIDTH], yBottomLimit[WIDTH];
 	for (int i = 0; i < WIDTH; i++)
 	{
 		yTopLimit[i] = 0;
-		yTopTemp[i] = 0;
 		yBottomLimit[i] = HEIGHT - 1;
-		yBottomTemp[i] = HEIGHT - 1;
 	}
 	struct portal queue[maxSectors];
+	struct room *rooms = NULL;
+	int roomCount = 0;
 
 	// Whole screen is the initial portal.
 	*queue = (struct portal){player.sector, 0, WIDTH - 1};
@@ -330,19 +371,19 @@ static void RenderWalls()
 						float z = z1 * (1 - t2) + z2 * t2;
 						int yTop = zt1 * (1 - t) + zt2 * t + 0.5;	// +0.5 to remove jaggies.
 						int yBottom = zb1 * (1 - t) + zb2 * t + 0.5; // +0.5 to remove jaggies.
-						int yt = Clamp(yBottomTemp[x], yTopTemp[x], yTop);
-						int yb = Clamp(yBottomTemp[x], yTopTemp[x], yBottom);
+						int yt = Clamp(yBottomLimit[x], yTopLimit[x], yTop);
+						int yb = Clamp(yBottomLimit[x], yTopLimit[x], yBottom);
 						float dx = *ptr * (1 - t) + *(ptr + 2) * t;
 						float dy = *(ptr + 1) * (1 - t) + *(ptr + 3) * t;
 						float distance = dx * dx + dy * dy;
 						// Draw roofs and floors.
 						if (sctr->ceilingTexture == -1 || !showTextures)
 						{
-							RenderLine(x, yTopTemp[x], yt, yTop, yBottom, 0x78, 0x78, 0x78, distance, sctr->lightlevel, -1, 1, 0, -1, current);
+							RenderLine(x, yTopLimit[x], yt, yTop, yBottom, 0x78, 0x78, 0x78, distance, sctr->lightlevel, -1, 1, 0, -1, current);
 						}
 						if (sctr->floorTexture == -1 || !showTextures)
 						{
-							RenderLine(x, yb, yBottomTemp[x], yTop, yBottom, 0x79, 0x79, 0x79, distance, sctr->lightlevel, -1, 0, 1, -1, current);
+							RenderLine(x, yb, yBottomLimit[x], yTop, yBottom, 0x79, 0x79, 0x79, distance, sctr->lightlevel, -1, 0, 1, -1, current);
 						}
 						if (sctr->lineDef[i].adjacent > -1)
 						{
@@ -352,13 +393,13 @@ static void RenderWalls()
 								float tex = tex1 * (1 - t2) + texf2 * t2;
 								int u = tex / z;
 								int realStepY = stepy1 * (1 - t) + stepy2 * t + 0.5;
-								int stepY = Clamp(yBottomTemp[x], yTopTemp[x], realStepY); // +0.5 to remove jaggies.
+								int stepY = Clamp(yBottomLimit[x], yTopLimit[x], realStepY); // +0.5 to remove jaggies.
 								RenderLine(x, stepY, yb, realStepY, yBottom, 0x37, 0xcd, 0xc1, distance, sctr->lightlevel, u, 0, 0, sctr->lineDef[i].floorTexture, current);
-								yBottomTemp[x] = stepY;
+								yBottomLimit[x] = stepY;
 							}
 							else
 							{
-								yBottomTemp[x] = yb;
+								yBottomLimit[x] = yb;
 							}
 
 							if (sectors[sctr->lineDef[i].adjacent - 1].ceilingheight < sctr->ceilingheight)
@@ -367,13 +408,13 @@ static void RenderWalls()
 								float tex = tex1 * (1 - t2) + texc2 * t2;
 								int u = tex / z;
 								int realCeilY = ceily1 * (1 - t) + ceily2 * t + 0.5;
-								int ceilY = Clamp(yBottomTemp[x], yTopTemp[x], realCeilY); // +0.5 to remove jaggies.
+								int ceilY = Clamp(yBottomLimit[x], yTopLimit[x], realCeilY); // +0.5 to remove jaggies.
 								RenderLine(x, yt, ceilY, yTop, realCeilY, 0xa7, 0x37, 0xcd, distance, sctr->lightlevel, u, 0, 0, sctr->lineDef[i].ceilingTexture, current);
-								yTopTemp[x] = ceilY;
+								yTopLimit[x] = ceilY;
 							}
 							else
 							{
-								yTopTemp[x] = yt;
+								yTopLimit[x] = yt;
 							}
 						}
 						else
@@ -389,56 +430,53 @@ static void RenderWalls()
 					{
 						end++;
 						queue[end] = (struct portal){sctr->lineDef[i].adjacent, x1, x2};
-					}
-				}
-			}
-		}
-		for (int i = 0; i < sctr->objectNum; i++)
-		{
-			struct object obj = sctr->objectDef[i];
-			float rotx, roty, lightlevel;
-			rotx = (obj.x - player.position.x) * cos(player.angle) + (obj.y - player.position.y) * sin(player.angle);
-			roty = (obj.y - player.position.y) * cos(player.angle) - (obj.x - player.position.x) * sin(player.angle);
-			if (rotx > 0.05)
-			{
-				float oz;
-				int sx, sy, x1, x2, fy, tx, ty;
-				sx = (FOV * roty / rotx) + WIDTHD2;
-				sy = ((ph - sctr->floorheight) / rotx) + HEIGHTD2;
-				oz = 1 / rotx;
-				lightlevel = ((oz) > 1 ? 1 : oz) * sctr->lightlevel;
-				tx = obj.width * oz / 2;
-				ty = obj.height * oz;
-				fy = sy - ty;
-				x1 = sx - tx;
-				x2 = sx + tx;
-				for (int y = fy; y <= sy; y++)
-				{
-					float t1 = (y - fy) / (float)(sy - fy);
-					int v = 0 * (1 - t1) + (obj.height - 1) * t1;
-					for (int x = x1; x <= x2; x++)
-					{
-						if (y > yTopLimit[x] && y < yBottomLimit[x] && x > 0 && x < WIDTH && x > currentPortal->x1 && x < currentPortal->x2)
+						// Load rooms with objects to draw
+						struct sector *aSctr = &sectors[sctr->lineDef[i].adjacent - 1];
+						if (aSctr->objectNum > 0)
 						{
-							float t2 = (x - x1) / (float)(x2 - x1);
-							int u = 0 * (1 - t2) + obj.width * t2;
-							int index = (u + v * (obj.width));
-							if (obj.pixels[index].R != 0xff && obj.pixels[index].G != 0x00 && obj.pixels[index].B != 0xaf)
+							rooms = realloc(rooms, ++roomCount * sizeof(struct room *));
+							struct room *rm = &rooms[roomCount - 1];
+							rm->x1 = x1;
+							rm->x2 = x2;
+							// for (int k = 0; k < WIDTH; k++)
+							// {
+							// 	printf("%d\n", k);
+							// 	rm->yt[k] = yTopLimit[k];
+							// 	rm->yb[k] = yBottomLimit[k];
+							// 	printf("%d\n", k);
+							// }
+							rm->objectNum = aSctr->objectNum;
+							rm->objects = malloc(rm->objectNum * sizeof(*rm->objects));
+							for (int o = 0; o < aSctr->objectNum; o++)
 							{
-								SDL_SetRenderDrawColor(renderer, obj.pixels[index].R * lightlevel, obj.pixels[index].G * lightlevel, obj.pixels[index].B * lightlevel, 0x00);
-								SDL_RenderDrawPoint(renderer, x, y);
+								rm->objects[o].x = aSctr->objectDef[o].x;
+								rm->objects[o].y = aSctr->objectDef[o].y;
+								rm->objects[o].texture = aSctr->objectDef[o].texture;
 							}
 						}
 					}
 				}
 			}
 		}
-		for (int i = 0; i < WIDTH; i++)
+		// Render objects in portals found BACKWARDS
+		for (int i = roomCount - 1; i >= 0; i--)
 		{
-			yTopLimit[i] = yTopTemp[i];
-			yBottomLimit[i] = yBottomTemp[i];
+			struct room *room = &rooms[i];
+			for (int j = 0; j < room->objectNum; j++)
+			{
+				struct object *obj = &room->objects[j];
+				RenderObject(obj, sctr, ph, room->x1, room->x2, yTopLimit, yBottomLimit);
+			}
 		}
 	} while (current != end);
+	struct sector *sctr = &sectors[player.sector - 1];
+	// Render objects in current room
+	for (int i = 0; i < sctr->objectNum; i++)
+	{
+		struct object *obj = &sctr->objectDef[i];
+		RenderObject(obj, sctr, ph, 0, WIDTH - 1, yTopLimit, yBottomLimit);
+	}
+	free(rooms);
 }
 
 static void MovePlayer()
