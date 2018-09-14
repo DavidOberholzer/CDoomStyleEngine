@@ -433,62 +433,62 @@ static void RenderWalls()
 						end++;
 						queue[end] = (struct portal){sctr->lineDef[i].adjacent, x1, x2};
 						// Load rooms with objects to draw
-						struct sector *aSctr = &sectors[sctr->lineDef[i].adjacent - 1];
-						if (aSctr->objectNum > 0)
-						{
-							rooms = realloc(rooms, ++roomCount * sizeof(struct room *));
-							struct room *rm = &rooms[roomCount - 1];
-							rm->x1 = x1;
-							rm->x2 = x2;
-							// for (int k = 0; k < WIDTH; k++)
-							// {
-							// 	printf("%d\n", k);
-							// 	rm->yt[k] = yTopLimit[k];
-							// 	rm->yb[k] = yBottomLimit[k];
-							// 	printf("%d\n", k);
-							// }
-							rm->objectNum = aSctr->objectNum;
-							rm->objects = malloc(rm->objectNum * sizeof(*rm->objects));
-							for (int o = 0; o < aSctr->objectNum; o++)
-							{
-								rm->objects[o].x = aSctr->objectDef[o].x;
-								rm->objects[o].y = aSctr->objectDef[o].y;
-								rm->objects[o].texture = aSctr->objectDef[o].texture;
-							}
-						}
+						// struct sector *aSctr = &sectors[sctr->lineDef[i].adjacent - 1];
+						// if (aSctr->objectNum > 0)
+						// {
+						// 	rooms = realloc(rooms, ++roomCount * sizeof(struct room *));
+						// 	struct room *rm = &rooms[roomCount - 1];
+						// 	rm->x1 = x1;
+						// 	rm->x2 = x2;
+						// 	// for (int k = 0; k < WIDTH; k++)
+						// 	// {
+						// 	// 	printf("%d\n", k);
+						// 	// 	rm->yt[k] = yTopLimit[k];
+						// 	// 	rm->yb[k] = yBottomLimit[k];
+						// 	// 	printf("%d\n", k);
+						// 	// }
+						// 	rm->objectNum = aSctr->objectNum;
+						// 	rm->objects = malloc(rm->objectNum * sizeof(*rm->objects));
+						// 	for (int o = 0; o < aSctr->objectNum; o++)
+						// 	{
+						// 		rm->objects[o].x = aSctr->objectDef[o].x;
+						// 		rm->objects[o].y = aSctr->objectDef[o].y;
+						// 		rm->objects[o].texture = aSctr->objectDef[o].texture;
+						// 	}
+						// }
 					}
 				}
 			}
 		}
 		// Render objects in portals found BACKWARDS (for drawing over one another)
-		for (int i = roomCount - 1; i >= 0; i--)
-		{
-			struct room *room = &rooms[i];
-			struct objInfo objs[room->objectNum], temp;
-			for (int p = 0; p < room->objectNum; p++)
-			{
-				objs[p].d = lineDistance(room->objects[p].x - player.position.x,
-										 room->objects[p].y - player.position.y);
-				objs[p].loc = p;
-			}
-			for (int i = 0; i < room->objectNum; i++)
-			{
-				for (int j = i + 1; j < room->objectNum; j++)
-				{
-					if (objs[i].d < objs[j].d)
-					{
-						temp = objs[i];
-						objs[i] = objs[j];
-						objs[j] = temp;
-					}
-				}
-			}
-			for (int j = 0; j < room->objectNum; j++)
-			{
-				struct object *obj = &room->objects[objs[j].loc];
-				RenderObject(obj, sctr, ph, room->x1, room->x2, yTopSLimit, yBottomSLimit);
-			}
-		}
+		// for (int i = roomCount - 1; i >= 0; i--)
+		// {
+		// 	struct room *room = &rooms[i];
+		// 	struct objInfo objs[room->objectNum], temp;
+		// 	for (int p = 0; p < room->objectNum; p++)
+		// 	{
+		// 		objs[p].d = lineDistance(room->objects[p].x - player.position.x,
+		// 								 room->objects[p].y - player.position.y);
+		// 		objs[p].loc = p;
+		// 	}
+		// 	for (int i = 0; i < room->objectNum; i++)
+		// 	{
+		// 		for (int j = i + 1; j < room->objectNum; j++)
+		// 		{
+		// 			if (objs[i].d < objs[j].d)
+		// 			{
+		// 				temp = objs[i];
+		// 				objs[i] = objs[j];
+		// 				objs[j] = temp;
+		// 			}
+		// 		}
+		// 	}
+		// 	for (int j = 0; j < room->objectNum; j++)
+		// 	{
+		// 		struct object *obj = &room->objects[objs[j].loc];
+		// 		RenderObject(obj, sctr, ph, room->x1, room->x2, yTopSLimit, yBottomSLimit);
+		// 	}
+		// }
 	} while (current != end);
 	struct sector *sctr = &sectors[player.sector - 1];
 	// Render objects in current room
@@ -556,7 +556,8 @@ static void HandleCollision()
 			int canStep = 0;
 			if (sectors[i].lineDef[j].adjacent > -1)
 			{
-				if ((sectors[sectors[i].lineDef[j].adjacent - 1].floorheight - sectors[player.sector - 1].floorheight) <= 30)
+				struct sector *aSctr = &sectors[sectors[i].lineDef[j].adjacent - 1];
+				if ((aSctr->floorheight - sectors[player.sector - 1].floorheight) <= 30 && (aSctr->ceilingheight - aSctr->floorheight) > 50)
 				{
 					canStep = 1;
 				}
@@ -572,8 +573,19 @@ static void HandleCollision()
 				{
 					// Project the movement vector along the collided wall.
 					float *dir = VectorProjection(player.velocity.x, player.velocity.y, sectors[i].lineDef[j].x2 - sectors[i].lineDef[j].x1, sectors[i].lineDef[j].y2 - sectors[i].lineDef[j].y1);
-					player.velocity.x = *dir;
-					player.velocity.y = *(dir + 1);
+					if ((player.velocity.x > 0 && *dir < 0) ||
+						(player.velocity.x < 0 && *dir > 0) ||
+						(player.velocity.y < 0 && *(dir + 1) > 0) ||
+						(player.velocity.y < 0 && *(dir + 1) > 0))
+					{
+						player.velocity.x = 0;
+						player.velocity.y = 0;
+					}
+					else
+					{
+						player.velocity.x = *dir;
+						player.velocity.y = *(dir + 1);
+					}
 				}
 			}
 		}
