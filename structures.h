@@ -2,6 +2,10 @@
 #define STRUCTURES_INCLUDED
 
 #include <stdlib.h>
+#include "graphics.h"
+
+typedef unsigned char BYTE;
+typedef short DBYTE;
 
 // Screen Line
 struct screen_line
@@ -39,10 +43,55 @@ struct line
 	signed char wallTexture, ceilingTexture, floorTexture;
 };
 
+// Player location
+struct player
+{
+	struct xy position, velocity;
+	float angle;
+	unsigned sector;
+};
+
+// Pixel
+struct pixel
+{
+	unsigned char R, G, B;
+};
+
+// Texture Structure
+struct texture
+{
+	struct pixel *pixels;
+	int width, height;
+};
+
+// Object Structure
+struct object
+{
+	int sector, texture;
+	float x, y;
+};
+
+// Object Info for sorting.
+struct objInfo 
+{
+	float d;
+	int loc;
+};
+
 // Render Portal
 struct portal
 {
 	int sectorNo, x1, x2;
+};
+
+// Room to render objects etc.
+struct room
+{
+	int x1, x2;
+	struct object objects[MAX_SECTORS];
+	int objectNum;
+	int yt[WIDTH], yb[WIDTH];
+	struct sector *sctr;
 };
 
 // Sectors
@@ -58,27 +107,31 @@ struct sector
 	struct xy t1, t2, t3, t4;
 };
 
-// Player location
-struct player
+#pragma pack(push, 1)
+
+// PCX Header Structure
+struct pcx_header
 {
-	struct xy position, velocity;
-	float angle;
-	unsigned sector;
+	BYTE manufacturer;
+	BYTE version;
+	BYTE runLength;
+	BYTE bpppbp;
+	DBYTE Xmin;
+	DBYTE Ymin;
+	DBYTE Xmax;
+	DBYTE YMax;
+	DBYTE HorizontalRes;
+	DBYTE VerticalRes;
+	BYTE pallete[48];
+	BYTE reservedB1;
+	BYTE noBitPlanes;
+	DBYTE bytesPerRow;
+	DBYTE palleteInterpretation;
+	DBYTE horizontalScreenSize;
+	DBYTE verticalScreenSize;
+	BYTE reserved[54];
 };
 
-// Texture Structure
-struct texture
-{
-	unsigned char *pixels;
-	int width, height, components;
-};
-
-// Object Structure
-struct object
-{
-	unsigned char *pixels;
-	int width, height, components, sector;
-	float x, y;
-};
+#pragma pack(pop)
 
 #endif

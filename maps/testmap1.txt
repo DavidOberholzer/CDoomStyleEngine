@@ -1,23 +1,42 @@
-line 0 0 5 0 x 1 x x
-line 5 0 5 2.5 x 1 x x
-line 5 2.5 5 5 2 x 2 3
-line 5 5 0 5 x 1 x x
-line 0 5 0 0 x 1 x x
+texture Wall2.pcx
+texture RoofWall1.pcx
+texture StepWall1.pcx
+texture floor1.pcx
+texture roof1.pcx
+texture floor2.pcx
+texture torch.pcx
+texture roof2.pcx
 
-line 5 5 5 2.5 1 x 2 3
-line 5 2.5 10 2.5 x 1 x x
-line 10 2.5 10 5 x 1 x x
-line 10 5 5 5 x 1 x x
+line 0 0 1 0 x 1 x x
+line 1 0 1 0.5 x 1 x x
+line 1 0.5 1 1 2 x 2 3
+line 1 1 0.5 1 3 x 1 1
+line 0.5 1 0 1 x 1 x x
+line 0 1 0 0 x 1 x x
 
-object 4.5 12.5 1 torch.jpeg
+line 1 1 1 0.5 1 x 2 3
+line 1 0.5 2 0.5 x 1 x x
+line 2 0.5 2 1 x 1 x x
+line 2 1 1 1 4 x 2 3
 
-sector 0 300 1 4 5       1 2 3 4 5
-sector 10 300 0.5 4 5    6 7 8 9
+line 0.5 1 1 1 1 x 1 1
+line 1 1 0.75 1.5 x 3 x x
+line 0.75 1.5 0.5 1 x 3 x x
 
-player 2.5 2.5 0 1
+line 1 1 2 1 2 x 2 3
+line 2 1 2 2 x 1 x x
+line 2 2 1 2 x 1 x x
+line 1 2 1 1 x 1 x x
 
-texture WallWood1.jpeg
-texture RoofWall1.jpeg
-texture StepWall1.jpeg
-texture floor1.jpeg
-texture roof1.jpeg
+object 0.25 0.25 1 7
+object 0.75 0.50 1 7
+object 1.75 1.75 4 7
+object 1.75 1.25 4 7
+
+sector 0 150 1 6 5       1 2 3 4 5 6
+sector 10 175 0.5 6 5    7 8 9 10
+sector 50 80 0.75 8 8    11 12 13
+sector 30 200 0.9 6 5    14 15 16 17
+
+
+player 0.5 0.5 0 1

@@ -15,6 +15,7 @@ extern float screenLightMap[];
 void LoadMapFile(char *);
 void LoadObject(char *, float, float, int, struct object *);
 void LoadTexture(char *);
+void LoadPCXFile(char *, struct texture *);
 void UnloadData();
 
 #endif

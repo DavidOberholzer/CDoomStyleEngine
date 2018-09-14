@@ -62,7 +62,7 @@ void RenderLine(int x, int y1, int y2, int yt, int yb, int R, int G, int B, floa
 	}
 	else
 	{
-		light_level = showTextures ? (distance < 6 ? 1 : distance > 30 ? 0.2 : 6 / distance) * sctrLight : 1;
+		light_level = showTextures ? (distance < 3 ? 1 : distance > 15 ? 0.2 : 3 / distance) * sctrLight : 1;
 		if ((u < 0 || textureIndex == -1) || showTextures != 1)
 		{
 			SDL_SetRenderDrawColor(renderer, R * light_level, G * light_level, B * light_level, 0x00);
@@ -77,8 +77,8 @@ void RenderLine(int x, int y1, int y2, int yt, int yb, int R, int G, int B, floa
 				{
 					float dy = (y - yb) / (float)(yt - yb);
 					int height = dy * (texture->height - 1);
-					int index = (u + height * texture->width) * texture->components;
-					SDL_SetRenderDrawColor(renderer, texture->pixels[index] * light_level, texture->pixels[index + 1] * light_level, texture->pixels[index + 2] * light_level, 0x00);
+					int index = (u + height * texture->width);
+					SDL_SetRenderDrawColor(renderer, texture->pixels[index].R * light_level, texture->pixels[index].G * light_level, texture->pixels[index].B * light_level, 0x00);
 					SDL_RenderDrawPoint(renderer, x, y);
 				}
 			}
