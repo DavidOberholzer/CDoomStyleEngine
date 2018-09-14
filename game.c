@@ -7,13 +7,14 @@
 #include "worldmath.h"
 #include "structures.h"
 
-#define MOVESPEED 0.05
+#define MOVESPEED 0.03
 #define FOV 400
 
 static float playerView = 0;
 static float viewMovement = 0;
 static int viewDown = 1;
-static int playerHeight = 100;
+static int eyeHeight = 20;
+static int playerHeight = 0;
 static int fallHeight = 0;
 static int fallingVelocity = 0;
 int showTextures = 1;
@@ -312,7 +313,7 @@ static void RenderWalls()
 	int end = 0, current = -1;
 
 	// Get current player height
-	float ph = (int)playerView + playerHeight;
+	float ph = (int)playerView + playerHeight + eyeHeight;
 	do
 	{
 		current += 1;

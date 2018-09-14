@@ -15,7 +15,7 @@ void InitGraphics()
 {
 	SDL_Init(SDL_INIT_EVERYTHING);
 
-	window = SDL_CreateWindow("2.5d Engine David", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, WIDTH, HEIGHT, 0);
+	window = SDL_CreateWindow("2.5d Engine David", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, WIDTH, HEIGHT, SDL_WINDOW_FULLSCREEN);
 
 	if (window == NULL)
 	{
@@ -62,7 +62,7 @@ void RenderLine(int x, int y1, int y2, int yt, int yb, int R, int G, int B, floa
 	}
 	else
 	{
-		light_level = showTextures ? (distance < 6 ? 1 : distance > 30 ? 0.2 : 6 / distance) * sctrLight : 1;
+		light_level = showTextures ? (distance < 3 ? 1 : distance > 15 ? 0.2 : 3 / distance) * sctrLight : 1;
 		if ((u < 0 || textureIndex == -1) || showTextures != 1)
 		{
 			SDL_SetRenderDrawColor(renderer, R * light_level, G * light_level, B * light_level, 0x00);

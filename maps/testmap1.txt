@@ -30,7 +30,6 @@ line 1 2 1 1 x 1 x x
 
 object 0.25 0.25 1 7
 object 0.75 0.50 1 7
-object 1.75 0.75 2 7
 object 1.75 1.75 4 7
 object 1.75 1.25 4 7
 
