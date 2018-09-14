@@ -88,9 +88,10 @@ struct portal
 struct room
 {
 	int x1, x2;
-	struct object *objects;
+	struct object objects[MAX_SECTORS];
 	int objectNum;
-	int *yt, *yb;
+	int yt[WIDTH], yb[WIDTH];
+	struct sector *sctr;
 };
 
 // Sectors

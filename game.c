@@ -8,7 +8,7 @@
 #include "structures.h"
 
 #define MOVESPEED 0.05
-#define FOV 250
+#define FOV 400
 
 static float playerView = 0;
 static float viewMovement = 0;
@@ -291,7 +291,6 @@ static void SegmentAndDrawFlats(struct sector *sctr, int ph, struct portal *curr
 
 static void RenderWalls()
 {
-	int maxSectors = 16;
 	int yTopLimit[WIDTH], yBottomLimit[WIDTH], yTopSLimit[WIDTH], yBottomSLimit[WIDTH];
 	for (int i = 0; i < WIDTH; i++)
 	{
@@ -300,9 +299,13 @@ static void RenderWalls()
 		yTopSLimit[i] = 0;
 		yBottomSLimit[i] = HEIGHT - 101;
 	}
-	struct portal queue[maxSectors];
-	struct room *rooms = NULL;
-	int roomCount = 0;
+	struct portal queue[MAX_SECTORS];
+	struct room rooms[MAX_SECTORS];
+	int roomNum = 0;
+	for (int i = 0; i < MAX_SECTORS; i++)
+	{
+		rooms[i].objectNum = 0;
+	}
 
 	// Whole screen is the initial portal.
 	*queue = (struct portal){player.sector, 0, WIDTH - 1};
@@ -362,7 +365,7 @@ static void RenderWalls()
 				}
 
 				// Wall is facing the player only.
-				if (s1 < s2)
+				if (s1 < s2 && (!(s1 < 0 && s2 < 0) || !(s1 > WIDTH && s2 > WIDTH)))
 				{
 					int x1 = Max(currentPortal->x1, s1);
 					int x2 = Min(currentPortal->x2, s2);
@@ -428,70 +431,70 @@ static void RenderWalls()
 						}
 					}
 					// Load in next in next portal if adjacent sector found.
-					if (sctr->lineDef[i].adjacent > -1 && end != maxSectors - 1)
+					if (sctr->lineDef[i].adjacent > -1 && end != MAX_SECTORS - 1)
 					{
 						end++;
 						queue[end] = (struct portal){sctr->lineDef[i].adjacent, x1, x2};
 						// Load rooms with objects to draw
-						// struct sector *aSctr = &sectors[sctr->lineDef[i].adjacent - 1];
-						// if (aSctr->objectNum > 0)
-						// {
-						// 	rooms = realloc(rooms, ++roomCount * sizeof(struct room *));
-						// 	struct room *rm = &rooms[roomCount - 1];
-						// 	rm->x1 = x1;
-						// 	rm->x2 = x2;
-						// 	// for (int k = 0; k < WIDTH; k++)
-						// 	// {
-						// 	// 	printf("%d\n", k);
-						// 	// 	rm->yt[k] = yTopLimit[k];
-						// 	// 	rm->yb[k] = yBottomLimit[k];
-						// 	// 	printf("%d\n", k);
-						// 	// }
-						// 	rm->objectNum = aSctr->objectNum;
-						// 	rm->objects = malloc(rm->objectNum * sizeof(*rm->objects));
-						// 	for (int o = 0; o < aSctr->objectNum; o++)
-						// 	{
-						// 		rm->objects[o].x = aSctr->objectDef[o].x;
-						// 		rm->objects[o].y = aSctr->objectDef[o].y;
-						// 		rm->objects[o].texture = aSctr->objectDef[o].texture;
-						// 	}
-						// }
+						struct sector *aSctr = &sectors[sctr->lineDef[i].adjacent - 1];
+						if (aSctr->objectNum > 0)
+						{
+							rooms[roomNum].x1 = x1;
+							rooms[roomNum].x2 = x2;
+							rooms[roomNum].sctr = aSctr;
+							for (int k = 0; k < WIDTH; k++)
+							{
+								rooms[roomNum].yt[k] = yTopLimit[k];
+								rooms[roomNum].yb[k] = yBottomLimit[k];
+							}
+							rooms[roomNum].objectNum = aSctr->objectNum > MAX_SECTORS ? MAX_SECTORS : aSctr->objectNum;
+							for (int o = 0; o < aSctr->objectNum; o++)
+							{
+								rooms[roomNum].objects[o].x = aSctr->objectDef[o].x;
+								rooms[roomNum].objects[o].y = aSctr->objectDef[o].y;
+								rooms[roomNum].objects[o].texture = aSctr->objectDef[o].texture;
+							}
+							roomNum++;
+						}
 					}
 				}
 			}
 		}
-		// Render objects in portals found BACKWARDS (for drawing over one another)
-		// for (int i = roomCount - 1; i >= 0; i--)
-		// {
-		// 	struct room *room = &rooms[i];
-		// 	struct objInfo objs[room->objectNum], temp;
-		// 	for (int p = 0; p < room->objectNum; p++)
-		// 	{
-		// 		objs[p].d = lineDistance(room->objects[p].x - player.position.x,
-		// 								 room->objects[p].y - player.position.y);
-		// 		objs[p].loc = p;
-		// 	}
-		// 	for (int i = 0; i < room->objectNum; i++)
-		// 	{
-		// 		for (int j = i + 1; j < room->objectNum; j++)
-		// 		{
-		// 			if (objs[i].d < objs[j].d)
-		// 			{
-		// 				temp = objs[i];
-		// 				objs[i] = objs[j];
-		// 				objs[j] = temp;
-		// 			}
-		// 		}
-		// 	}
-		// 	for (int j = 0; j < room->objectNum; j++)
-		// 	{
-		// 		struct object *obj = &room->objects[objs[j].loc];
-		// 		RenderObject(obj, sctr, ph, room->x1, room->x2, yTopSLimit, yBottomSLimit);
-		// 	}
-		// }
 	} while (current != end);
-	struct sector *sctr = &sectors[player.sector - 1];
+	// Render objects in portals found BACKWARDS (for drawing over one another)
+	for (int i = roomNum - 1; i >= 0; i--)
+	{
+		struct room *room = &rooms[i];
+		if (room->objectNum > 0)
+		{
+			struct objInfo objs[room->objectNum], temp;
+			for (int p = 0; p < room->objectNum; p++)
+			{
+				objs[p].d = lineDistance(room->objects[p].x - player.position.x,
+										 room->objects[p].y - player.position.y);
+				objs[p].loc = p;
+			}
+			for (int i = 0; i < room->objectNum; i++)
+			{
+				for (int j = i + 1; j < room->objectNum; j++)
+				{
+					if (objs[i].d < objs[j].d)
+					{
+						temp = objs[i];
+						objs[i] = objs[j];
+						objs[j] = temp;
+					}
+				}
+			}
+			for (int j = 0; j < room->objectNum; j++)
+			{
+				struct object *obj = &room->objects[objs[j].loc];
+				RenderObject(obj, room->sctr, ph, room->x1, room->x2, room->yt, room->yb);
+			}
+		}
+	}
 	// Render objects in current room
+	struct sector *sctr = &sectors[player.sector - 1];
 	struct objInfo objs[sctr->objectNum], temp;
 	for (int p = 0; p < sctr->objectNum; p++)
 	{
@@ -516,10 +519,6 @@ static void RenderWalls()
 		struct object *obj = &sctr->objectDef[objs[i].loc];
 		RenderObject(obj, sctr, ph, 0, WIDTH - 1, yTopSLimit, yBottomSLimit);
 	}
-	for (int i = 0; i < roomCount; i++) {
-		free(rooms[i].objects);
-	}
-	free(rooms);
 }
 
 static void MovePlayer()
