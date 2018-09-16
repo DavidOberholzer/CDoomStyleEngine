@@ -20,6 +20,10 @@ Make sure you have a gcc compiler and SDL2 libaries installed on your system.
 
 You can compile main.c yourself or just run the make command in linux `make compile` then `make run` to run it!
 
+This is the line I use to compile:
+
+`gcc -o app "main.c" "data_io.c" "game.c" "graphics.c" "worldmath.c" -lSDL2 -lm`
+
 ## Controls
 
 W - Forwards\
