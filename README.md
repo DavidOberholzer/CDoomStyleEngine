@@ -1,4 +1,4 @@
-# CDOOMStyleEngine
+# CDOOMStyleEngine v0.1.0
 
 ![alt text](https://raw.githubusercontent.com/davidoberholzer/cdoomstyleengine/master/screenshots/screen1.png)
 ![alt text](https://raw.githubusercontent.com/davidoberholzer/cdoomstyleengine/master/screenshots/screen2.png)
