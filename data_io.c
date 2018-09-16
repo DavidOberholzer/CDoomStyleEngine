@@ -40,7 +40,7 @@ void LoadMapFile(char *filename)
             {
             // Load lines
             case 'l':
-                sscanf(ptr += n, "%f%f%f%f%1s%1s%1s%1s%n", &ln.x1, &ln.y1, &ln.x2, &ln.y2, word, tw, tc, tf, &n);
+                sscanf(ptr += n, "%f%f%f%f%2s%2s%2s%2s%n", &ln.x1, &ln.y1, &ln.x2, &ln.y2, word, tw, tc, tf, &n);
                 ln.adjacent = word[0] == 'x' ? -1 : atoi(word);
                 ln.wallTexture = tw[0] == 'x' ? -1 : atoi(tw);
                 ln.ceilingTexture = tc[0] == 'x' ? -1 : atoi(tc);
@@ -62,7 +62,7 @@ void LoadMapFile(char *filename)
             case 's':
                 sectors = realloc(sectors, ++numSectors * sizeof(*sectors));
                 struct sector *sctr = &sectors[numSectors - 1];
-                sscanf(ptr += n, "%f%f%f%1s%1s%n", &sctr->floorheight, &sctr->ceilingheight, &sctr->lightlevel, tf, tc, &n);
+                sscanf(ptr += n, "%f%f%f%2s%2s%n", &sctr->floorheight, &sctr->ceilingheight, &sctr->lightlevel, tf, tc, &n);
                 sctr->floorTexture = tf[0] == 'x' ? -1 : atoi(tf);
                 sctr->ceilingTexture = tc[0] == 'x' ? -1 : atoi(tc);
                 int l;
@@ -142,6 +142,7 @@ void LoadMapFile(char *filename)
             }
         }
     }
+    LoadTexture("basichud.pcx");
     free(lines);
     free(objects);
 }

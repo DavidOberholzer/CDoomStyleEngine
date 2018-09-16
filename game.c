@@ -8,7 +8,7 @@
 #include "structures.h"
 
 #define MOVESPEED 0.03
-#define FOV 400
+#define FOV 300
 
 static float playerView = 0;
 static float viewMovement = 0;
@@ -17,7 +17,25 @@ static int eyeHeight = 20;
 static int playerHeight = 0;
 static int fallHeight = 0;
 static int fallingVelocity = 0;
-int showTextures = 1;
+int showTextures = 1, showHUD = 1;
+
+static void DrawHUD()
+{
+	struct texture *texture = &textures[numTextures - 1];
+	for (int x = 0; x < WIDTH; x++)
+	{
+		float tx = (x - 0) / (float)(WIDTH);
+		int u = 0 * (tx - 1) + texture->width * tx;
+		for (int y = HEIGHT - HUD; y < HEIGHT; y++)
+		{
+			float ty = (y - (HEIGHT - HUD)) / (float)(HUD);
+			int v = 0 * (ty - 1) + texture->height * ty;
+			int index = (u + v * (texture->width));
+			SDL_SetRenderDrawColor(renderer, texture->pixels[index].R, texture->pixels[index].G, texture->pixels[index].B, 0x00);
+			SDL_RenderDrawPoint(renderer, x, y);
+		}
+	}
+}
 
 static void RenderObject(struct object *obj, struct sector *sctr, int ph, int s1, int s2, int yt[WIDTH], int yb[WIDTH])
 {
@@ -128,7 +146,7 @@ static void RenderFlatLoop(int startLine,
 							  endV = xDir ? voz1 : voz2;
 						for (int x = startX; x <= endX; x++)
 						{
-							if (x >= 0 && x < WIDTH && x > currentPortal->x1 && x < currentPortal->x2)
+							if (x >= 0 && x < WIDTH && x >= currentPortal->x1 && x <= currentPortal->x2)
 							{
 								if (y > yt[x] && y < yb[x])
 								{
@@ -296,9 +314,9 @@ static void RenderWalls()
 	for (int i = 0; i < WIDTH; i++)
 	{
 		yTopLimit[i] = 0;
-		yBottomLimit[i] = HEIGHT - 101;
+		yBottomLimit[i] = HEIGHT - (showHUD ? HUD : 1);
 		yTopSLimit[i] = 0;
-		yBottomSLimit[i] = HEIGHT - 101;
+		yBottomSLimit[i] = HEIGHT - (showHUD ? HUD : 1);
 	}
 	struct portal queue[MAX_SECTORS];
 	struct room rooms[MAX_SECTORS];
@@ -529,7 +547,7 @@ static void MovePlayer()
 	{
 		float crossing = SideOfLine(player.position.x + player.velocity.x, player.position.y + player.velocity.y, sectors[sec].lineDef[i].x1, sectors[sec].lineDef[i].y1, sectors[sec].lineDef[i].x2, sectors[sec].lineDef[i].y2);
 		int overlap = BoxesOverlap(player.position.x, player.position.y, player.position.x + player.velocity.x, player.position.y + player.velocity.y, sectors[sec].lineDef[i].x1, sectors[sec].lineDef[i].y1, sectors[sec].lineDef[i].x2, sectors[sec].lineDef[i].y2);
-		if (sectors[sec].lineDef[i].adjacent > -1 && crossing < 0 && overlap)
+		if (sectors[sec].lineDef[i].adjacent > -1 && crossing <= 0 && overlap)
 		{
 			int nextFloorHeight = sectors[sectors[sec].lineDef[i].adjacent - 1].floorheight;
 			if (sectors[sec].floorheight < nextFloorHeight)
@@ -549,43 +567,41 @@ static void MovePlayer()
 
 static void HandleCollision()
 {
-	for (int i = 0; i < numSectors; i++)
+	int i = player.sector - 1;
+	for (int j = 0; j < sectors[i].lineNum; j++)
 	{
-		for (int j = 0; j < sectors[i].lineNum; j++)
+		int canStep = 0;
+		if (sectors[i].lineDef[j].adjacent > -1)
 		{
-			int canStep = 0;
-			if (sectors[i].lineDef[j].adjacent > -1)
+			struct sector *aSctr = &sectors[sectors[i].lineDef[j].adjacent - 1];
+			if ((aSctr->floorheight - sectors[player.sector - 1].floorheight) <= 30 && (aSctr->ceilingheight - aSctr->floorheight) > 50)
 			{
-				struct sector *aSctr = &sectors[sectors[i].lineDef[j].adjacent - 1];
-				if ((aSctr->floorheight - sectors[player.sector - 1].floorheight) <= 30 && (aSctr->ceilingheight - aSctr->floorheight) > 50)
-				{
-					canStep = 1;
-				}
+				canStep = 1;
 			}
-			if (!canStep)
+		}
+		if (!canStep)
+		{
+			float movingX = player.velocity.x > 0 ? player.velocity.x + 0.1 : player.velocity.x - 0.1;
+			float movingY = player.velocity.y > 0 ? player.velocity.y + 0.1 : player.velocity.y - 0.1;
+			float crossing = SideOfLine(player.position.x + movingX, player.position.y + movingY, sectors[i].lineDef[j].x1, sectors[i].lineDef[j].y1, sectors[i].lineDef[j].x2, sectors[i].lineDef[j].y2);
+			int overlap = BoxesOverlap(player.position.x, player.position.y, player.position.x + movingX, player.position.y + movingY, sectors[i].lineDef[j].x1, sectors[i].lineDef[j].y1, sectors[i].lineDef[j].x2, sectors[i].lineDef[j].y2);
+			// Check if the player is going to move behind the given wall and within range of the wall.
+			if (crossing < 0 && overlap)
 			{
-				float movingX = player.velocity.x > 0 ? player.velocity.x + 0.1 : player.velocity.x - 0.1;
-				float movingY = player.velocity.y > 0 ? player.velocity.y + 0.1 : player.velocity.y - 0.1;
-				float crossing = SideOfLine(player.position.x + movingX, player.position.y + movingY, sectors[i].lineDef[j].x1, sectors[i].lineDef[j].y1, sectors[i].lineDef[j].x2, sectors[i].lineDef[j].y2);
-				int overlap = BoxesOverlap(player.position.x, player.position.y, player.position.x + movingX, player.position.y + movingY, sectors[i].lineDef[j].x1, sectors[i].lineDef[j].y1, sectors[i].lineDef[j].x2, sectors[i].lineDef[j].y2);
-				// Check if the player is going to move behind the given wall and within range of the wall.
-				if (crossing < 0 && overlap)
+				// Project the movement vector along the collided wall.
+				float *dir = VectorProjection(player.velocity.x, player.velocity.y, sectors[i].lineDef[j].x2 - sectors[i].lineDef[j].x1, sectors[i].lineDef[j].y2 - sectors[i].lineDef[j].y1);
+				if ((player.velocity.x > 0 && *dir < 0) ||
+					(player.velocity.x < 0 && *dir > 0) ||
+					(player.velocity.y < 0 && *(dir + 1) > 0) ||
+					(player.velocity.y < 0 && *(dir + 1) > 0))
 				{
-					// Project the movement vector along the collided wall.
-					float *dir = VectorProjection(player.velocity.x, player.velocity.y, sectors[i].lineDef[j].x2 - sectors[i].lineDef[j].x1, sectors[i].lineDef[j].y2 - sectors[i].lineDef[j].y1);
-					if ((player.velocity.x > 0 && *dir < 0) ||
-						(player.velocity.x < 0 && *dir > 0) ||
-						(player.velocity.y < 0 && *(dir + 1) > 0) ||
-						(player.velocity.y < 0 && *(dir + 1) > 0))
-					{
-						player.velocity.x = 0;
-						player.velocity.y = 0;
-					}
-					else
-					{
-						player.velocity.x = *dir;
-						player.velocity.y = *(dir + 1);
-					}
+					player.velocity.x = 0;
+					player.velocity.y = 0;
+				}
+				else
+				{
+					player.velocity.x = *dir;
+					player.velocity.y = *(dir + 1);
 				}
 			}
 		}
@@ -639,11 +655,17 @@ void GameLoop()
 	int keysPressed[6] = {0, 0, 0, 0, 0, 0}; //Init key states to not pressed.
 	int close = 0;
 	time_t start, end;
+	playerHeight = sectors[player.sector - 1].floorheight;
+	fallHeight = playerHeight;
 	while (!close)
 	{
 		start = clock();
 		ClearFrame();
 		RenderWalls();
+		if (showHUD)
+		{
+			DrawHUD();
+		}
 		PresentFrame();
 		SDL_Event event;
 		while (SDL_PollEvent(&event))
@@ -674,6 +696,12 @@ void GameLoop()
 					break;
 				case SDLK_e:
 					keysPressed[5] = event.type == SDL_KEYDOWN ? 1 : 0;
+					break;
+				case SDLK_h:
+					if (event.type == SDL_KEYDOWN)
+					{
+						showHUD = showHUD ? 0 : 1;
+					}
 					break;
 				case SDLK_t:
 					if (event.type == SDL_KEYDOWN)

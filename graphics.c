@@ -15,7 +15,12 @@ void InitGraphics()
 {
 	SDL_Init(SDL_INIT_EVERYTHING);
 
-	window = SDL_CreateWindow("2.5d Engine David", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, WIDTH, HEIGHT, SDL_WINDOW_FULLSCREEN);
+	window = SDL_CreateWindow(
+		"2.5d Engine David",
+		SDL_WINDOWPOS_CENTERED,
+		SDL_WINDOWPOS_CENTERED,
+		WIDTH, HEIGHT,
+		SDL_WINDOW_FULLSCREEN);
 
 	if (window == NULL)
 	{
