@@ -8,7 +8,7 @@ Changelog
 - Texture mapping for walls, floors and ceilings added.
 - PCX format decoding for texture/object loading.
 - Object rendering added after portal rendering.
-- HUD added.
+- Placeholder HUD added.
 - Ability to hide/show textures in game.
 - Distance lighting added on all walls, ceilings, floors and objects.
 - Added a bunch of textures/objects to use.

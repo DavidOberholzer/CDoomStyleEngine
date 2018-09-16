@@ -12,6 +12,8 @@ There are a lot improvements to make that I don't get much time to look at, but 
 
 All the textures are my own and I made them with the program `Aseprite`.
 
+And before you ask, no the HUD does not function, it is just a fun placeholder :)
+
 ## Running it!
 
 Make sure you have a gcc compiler and SDL2 libaries installed on your system.
